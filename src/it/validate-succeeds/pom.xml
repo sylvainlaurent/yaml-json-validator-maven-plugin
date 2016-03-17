@@ -26,10 +26,14 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <includes>
-                <include>src/main/resources/swagger-*.yml</include>
-              </includes>
-              <!-- TODO configure the json schema to use -->
+              <validationSets>
+                <validationSet>
+                  <jsonSchema>src/main/resources/swagger-schema.json</jsonSchema>
+                  <includes>
+                    <include>src/main/resources/swagger-*.yml</include>
+                  </includes>
+                </validationSet>
+              </validationSets>
             </configuration>
           </execution>
         </executions>

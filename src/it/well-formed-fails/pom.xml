@@ -28,9 +28,8 @@
             <configuration>
               <validationSets>
                 <validationSet>
-                  <jsonSchema>src/main/resources/swagger-schema.json</jsonSchema>
                   <includes>
-                    <include>src/main/resources/not-valid.yml</include>
+                    <include>src/main/resources/*.yml</include>
                   </includes>
                 </validationSet>
               </validationSets>

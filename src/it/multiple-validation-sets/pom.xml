@@ -30,7 +30,12 @@
                 <validationSet>
                   <jsonSchema>src/main/resources/swagger-schema.json</jsonSchema>
                   <includes>
-                    <include>src/main/resources/not-valid.yml</include>
+                    <include>src/main/resources/swagger-editor-example.yml</include>
+                  </includes>
+                </validationSet>
+                <validationSet>
+                  <includes>
+                    <include>src/main/resources/malformed.yml</include>
                   </includes>
                 </validationSet>
               </validationSets>
