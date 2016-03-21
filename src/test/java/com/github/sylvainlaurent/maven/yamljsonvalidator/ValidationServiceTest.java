@@ -76,4 +76,11 @@ public class ValidationServiceTest {
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
     }
+
+    @Test
+    public void test_schema_with_reference_to_unreachable_host() {
+        service = new ValidationService(new File("src/test/resources/schema-with-ref.json"));
+        final ValidationResult result = service.validate(new File("src/test/resources/swagger-editor-example.json"));
+        assertFalse(result.hasError());
+    }
 }

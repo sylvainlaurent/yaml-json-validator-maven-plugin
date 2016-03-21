@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.load.Dereferencing;
+import com.github.fge.jsonschema.core.load.configuration.LoadingConfiguration;
 import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
@@ -63,8 +65,13 @@ public class ValidationService {
         }
         JsonSchema jsonSchema;
         try {
+            // using INLINE dereferencing to avoid internet access while validating
+            final LoadingConfiguration loadingConfiguration = LoadingConfiguration.newBuilder()
+                    .dereferencing(Dereferencing.INLINE).freeze();
+            final JsonSchemaFactory factory = JsonSchemaFactory.newBuilder()
+                    .setLoadingConfiguration(loadingConfiguration).freeze();
+
             final JsonNode schemaObject = jsonMapper.readTree(schemaFile);
-            final JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
             jsonSchema = factory.getJsonSchema(schemaObject);
         } catch (IOException | ProcessingException e) {
             throw new RuntimeException(e);
