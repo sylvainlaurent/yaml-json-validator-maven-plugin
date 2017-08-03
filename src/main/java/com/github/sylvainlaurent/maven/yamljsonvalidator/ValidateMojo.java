@@ -24,9 +24,17 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean verbose;
 
+    @Parameter(defaultValue = "false")
+    private boolean skip;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
+
+        if (skip) {
+            getLog().info("Skipping yaml validation");
+            return;
+        }
 
         for (final ValidationSet set : validationSets) {
             final ValidationService validationService = new ValidationService(set.getJsonSchema());
