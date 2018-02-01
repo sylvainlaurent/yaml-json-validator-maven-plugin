@@ -20,25 +20,39 @@ public class ValidationService {
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private final JsonSchema schema;
 
-    public ValidationService(final File schemaFile) {
+    private final boolean isEmptyFileAllowed;
+
+    public ValidationService(final File schemaFile, final boolean isEmptyFileAllowed) {
         schema = getJsonSchema(schemaFile);
+        this.isEmptyFileAllowed = isEmptyFileAllowed;
+    }
+
+    public ValidationService(final File schemaFile) {
+        this(schemaFile, false);
     }
 
     public ValidationResult validate(final File file) {
         final ValidationResult validationResult = new ValidationResult();
 
-        JsonNode spec;
-        try {
-            spec = readFileContent(file);
-        } catch (final Exception e) {
-            validationResult.addMessage("Error while parsing file " + file + ": " + e.getMessage());
-            validationResult.encounteredError();
+        if (isEmptyFileAllowed && isFileEmpty(file)) {
             return validationResult;
+        } else {
+            JsonNode spec;
+            try {
+                spec = readFileContent(file);
+            } catch (final Exception e) {
+                validationResult.addMessage("Error while parsing file " + file + ": " + e.getMessage());
+                validationResult.encounteredError();
+                return validationResult;
+            }
+
+            validateAgainstSchema(spec, validationResult);
         }
-
-        validateAgainstSchema(spec, validationResult);
-
         return validationResult;
+    }
+
+    private boolean isFileEmpty(final File file) {
+        return file.length() == 0L;
     }
 
     private void validateAgainstSchema(final JsonNode spec, final ValidationResult validationResult) {
