@@ -6,3 +6,5 @@
 pom.xml.*
 target/
 *.md.html
+.idea
+*.iml
