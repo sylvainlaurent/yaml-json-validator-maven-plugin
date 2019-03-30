@@ -9,6 +9,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
+/**
+ * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
+ * validates JSON files against it.
+ */
 @Mojo(name = "validate", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public class ValidateMojo extends AbstractMojo {
 
@@ -18,12 +22,32 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}", required = true, readonly = true)
     private File basedir;
 
+    /**
+     * <p>Specification of files to be validated.</p>
+     *
+     * <p>Use <code>&lt;includes&gt;</code> and
+     * <code>&lt;excludes&gt;</code> elements with nested lists of <code>&lt;include&gt;</code>
+     * and <code>&lt;exclude&gt;</code> elements respectively to specify lists of file masks of
+     * included and excluded files. The file masks are treated as paths relative to
+     * <code>${project.basedir}</code> and their syntax is that of
+     * <code>org.codehaus.plexus.util.DirectoryScanner</code>.</p>
+     *
+     * <p>JSON schema can be specified with <code>&lt;jsonSchema&gt;</code> element.</p>
+     */
     @Parameter
     private ValidationSet[] validationSets;
 
+    /**
+     * Set to <code>false</code> to disable printing of files being validated. Default is
+     * <code>true</code>.
+     */
     @Parameter(defaultValue = "true")
     private boolean verbose;
 
+    /**
+     * Set to <code>true</code> to accept empty JSON and YAML files as valid. Default is
+     * <code>false</code>.
+     */
     @Parameter(name = "allowEmptyFiles", defaultValue = "false")
     private boolean allowEmptyFiles;
 
