@@ -24,15 +24,16 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean verbose;
 
-    @Parameter(name = "isEmptyFileAllowed", defaultValue = "false")
-    private boolean isEmptyFileAllowed;
+    @Parameter(name = "allowEmptyFiles", defaultValue = "false")
+    private boolean allowEmptyFiles;
 
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
 
         for (final ValidationSet set : validationSets) {
-            final ValidationService validationService = new ValidationService(set.getJsonSchema(), isEmptyFileAllowed);
+            final ValidationService validationService = new ValidationService(set.getJsonSchema(),
+                allowEmptyFiles);
 
             final File[] files = set.getFiles(basedir);
 
