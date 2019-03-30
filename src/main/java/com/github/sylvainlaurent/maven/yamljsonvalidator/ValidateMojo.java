@@ -38,8 +38,7 @@ public class ValidateMojo extends AbstractMojo {
     private ValidationSet[] validationSets;
 
     /**
-     * Set to <code>false</code> to disable printing of files being validated. Default is
-     * <code>true</code>.
+     * Set to <code>false</code> to disable printing of files being validated.
      */
     @Parameter(defaultValue = "true")
     private boolean verbose;
@@ -48,8 +47,7 @@ public class ValidateMojo extends AbstractMojo {
     private boolean skip;
 
     /**
-     * Set to <code>true</code> to accept empty JSON and YAML files as valid. Default is
-     * <code>false</code>.
+     * Set to <code>true</code> to accept empty JSON and YAML files as valid.
      */
     @Parameter(name = "allowEmptyFiles", defaultValue = "false")
     private boolean allowEmptyFiles;
