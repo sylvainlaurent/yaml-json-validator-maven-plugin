@@ -29,9 +29,8 @@
               <skip>true</skip>
               <validationSets>
                 <validationSet>
-                  <jsonSchema>src/main/resources/swagger-schema.json</jsonSchema>
                   <includes>
-                    <include>src/main/resources/swagger-*.yml</include>
+                    <include>src/main/resources/test.yml</include>
                   </includes>
                 </validationSet>
               </validationSets>

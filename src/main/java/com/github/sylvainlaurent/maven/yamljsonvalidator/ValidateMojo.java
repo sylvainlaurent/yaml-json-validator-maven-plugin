@@ -32,7 +32,7 @@ public class ValidateMojo extends AbstractMojo {
         boolean encounteredError = false;
 
         if (skip) {
-            getLog().info("Skipping yaml validation");
+            getLog().info("Skipping validation");
             return;
         }
 
