@@ -44,6 +44,9 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean verbose;
 
+    @Parameter(defaultValue = "false")
+    private boolean skip;
+
     /**
      * Set to <code>true</code> to accept empty JSON and YAML files as valid. Default is
      * <code>false</code>.
@@ -54,6 +57,11 @@ public class ValidateMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
+
+        if (skip) {
+            getLog().info("Skipping validation");
+            return;
+        }
 
         for (final ValidationSet set : validationSets) {
             final ValidationService validationService = new ValidationService(set.getJsonSchema(),
