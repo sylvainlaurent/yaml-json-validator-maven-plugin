@@ -40,6 +40,11 @@ public class ValidationService {
             JsonNode spec;
             try {
                 spec = readFileContent(file);
+                if (spec == null && !isEmptyFileAllowed) {
+                    validationResult.addMessage("Empty file is not valid: " + file);
+                    validationResult.encounteredError();
+                    return validationResult;
+                }
             } catch (final Exception e) {
                 validationResult.addMessage("Error while parsing file " + file + ": " + e.getMessage());
                 validationResult.encounteredError();
