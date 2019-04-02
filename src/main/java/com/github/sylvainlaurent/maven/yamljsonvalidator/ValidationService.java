@@ -3,6 +3,7 @@ package com.github.sylvainlaurent.maven.yamljsonvalidator;
 import java.io.File;
 import java.io.IOException;
 
+import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -22,13 +23,18 @@ public class ValidationService {
 
     private final boolean isEmptyFileAllowed;
 
-    public ValidationService(final File schemaFile, final boolean isEmptyFileAllowed) {
+    public ValidationService(final File schemaFile, final boolean isEmptyFileAllowed,
+        final boolean detectDuplicateKeys) {
         schema = getJsonSchema(schemaFile);
         this.isEmptyFileAllowed = isEmptyFileAllowed;
+        if (detectDuplicateKeys) {
+            this.jsonMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
+            this.yamlMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
+        }
     }
 
     public ValidationService(final File schemaFile) {
-        this(schemaFile, false);
+        this(schemaFile, false, false);
     }
 
     public ValidationResult validate(final File file) {
