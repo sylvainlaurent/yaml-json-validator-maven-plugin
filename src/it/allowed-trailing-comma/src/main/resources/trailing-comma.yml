@@ -1,0 +1,3 @@
+root:
+  list: [1, 2,]
+  dict: { value: key, value2: key2, }

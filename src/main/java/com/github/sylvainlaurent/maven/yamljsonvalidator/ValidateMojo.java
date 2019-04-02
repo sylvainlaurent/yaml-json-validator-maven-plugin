@@ -58,6 +58,12 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "false")
     private boolean detectDuplicateKeys;
 
+    /**
+     * Set to <code>true</code> to allow for single trailing comma following final value or member.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean allowTrailingComma;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -69,7 +75,7 @@ public class ValidateMojo extends AbstractMojo {
 
         for (final ValidationSet set : validationSets) {
             final ValidationService validationService = new ValidationService(set.getJsonSchema(),
-                allowEmptyFiles, detectDuplicateKeys);
+                allowEmptyFiles, detectDuplicateKeys, allowTrailingComma);
 
             final File[] files = set.getFiles(basedir);
 

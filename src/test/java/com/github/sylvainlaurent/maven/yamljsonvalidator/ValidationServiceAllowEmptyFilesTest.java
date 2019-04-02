@@ -8,7 +8,7 @@ import java.io.File;
 import static org.junit.Assert.*;
 
 public class ValidationServiceAllowEmptyFilesTest {
-    private ValidationService service = new ValidationService(null, true, false);
+    private ValidationService service = new ValidationService(null, true, false, false);
 
     @Test
     public void test_empty_file_yml() {
