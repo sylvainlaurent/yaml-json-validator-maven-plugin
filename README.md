@@ -37,6 +37,8 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
                   </includes>
                 </validationSet>
               </validationSets>
+              <allowEmptyFiles>false</allowEmptyFiles>
+              <skip>false</skip>
             </configuration>
           </execution>
         </executions>
