@@ -55,7 +55,7 @@ public class ValidateMojo extends AbstractMojo {
     /**
      * Set to <code>true</code> to detect duplicate keys in JSON and YAML dictionaries.
      */
-    @Parameter(defaultValue = "false")
+    @Parameter(defaultValue = "true")
     private boolean detectDuplicateKeys;
 
     @Override
