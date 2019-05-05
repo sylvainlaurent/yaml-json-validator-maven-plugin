@@ -34,7 +34,7 @@ public class ValidationService {
     }
 
     public ValidationService(final File schemaFile) {
-        this(schemaFile, false, false);
+        this(schemaFile, false, true);
     }
 
     public ValidationResult validate(final File file) {
