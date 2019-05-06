@@ -52,6 +52,12 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(name = "allowEmptyFiles", defaultValue = "false")
     private boolean allowEmptyFiles;
 
+    /**
+     * Set to <code>true</code> to detect duplicate keys in JSON and YAML dictionaries.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean detectDuplicateKeys;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -63,7 +69,7 @@ public class ValidateMojo extends AbstractMojo {
 
         for (final ValidationSet set : validationSets) {
             final ValidationService validationService = new ValidationService(set.getJsonSchema(),
-                allowEmptyFiles);
+                allowEmptyFiles, detectDuplicateKeys);
 
             final File[] files = set.getFiles(basedir);
 

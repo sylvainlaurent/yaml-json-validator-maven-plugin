@@ -37,6 +37,8 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
                   </includes>
                 </validationSet>
               </validationSets>
+              <!-- Duplicate keys detection is turned on by default. -->
+              <detectDuplicateKeys>false</detectDuplicateKeys>
               <allowEmptyFiles>false</allowEmptyFiles>
               <skip>false</skip>
             </configuration>

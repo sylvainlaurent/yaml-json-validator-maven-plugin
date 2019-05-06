@@ -26,12 +26,10 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <detectDuplicateKeys>false</detectDuplicateKeys>
               <validationSets>
                 <validationSet>
-                  <jsonSchema>src/main/resources/swagger-schema.json</jsonSchema>
                   <includes>
-                    <include>src/main/resources/swagger-*.yml</include>
+                    <include>src/main/resources/*.json</include>
                   </includes>
                 </validationSet>
               </validationSets>
