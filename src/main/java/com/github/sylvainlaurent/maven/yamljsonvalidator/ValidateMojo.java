@@ -58,6 +58,12 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean detectDuplicateKeys;
 
+    /**
+     * Set to <code>true</code> to allow comments C style comments in JSON and YAML files without hickups.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean allowComments;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -69,7 +75,7 @@ public class ValidateMojo extends AbstractMojo {
 
         for (final ValidationSet set : validationSets) {
             final ValidationService validationService = new ValidationService(set.getJsonSchema(),
-                allowEmptyFiles, detectDuplicateKeys);
+                allowEmptyFiles, detectDuplicateKeys, allowComments);
 
             final File[] files = set.getFiles(basedir);
 
