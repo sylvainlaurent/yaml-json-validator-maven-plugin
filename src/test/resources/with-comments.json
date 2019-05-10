@@ -1,0 +1,11 @@
+{
+  /* this is a commented json file */
+  /* key-string */
+  "key-string": "string-value",
+  /* key-number */
+  "key-number": 1,
+  /* key-boolean */
+  "key-boolean": true,
+  /* key-array */
+  "key-array": ["this", "is", "an", "array"]
+}

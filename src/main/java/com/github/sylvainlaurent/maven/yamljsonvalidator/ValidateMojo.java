@@ -1,13 +1,13 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import java.io.File;
-
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+
+import java.io.File;
 
 /**
  * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
@@ -59,7 +59,8 @@ public class ValidateMojo extends AbstractMojo {
     private boolean detectDuplicateKeys;
 
     /**
-     * Set to <code>true</code> to allow comments C style comments in JSON and YAML files without hickups.
+     * Set to <code>true</code> to allow json validation to pass if Java/C style
+     * comments have been placed in JSON files.
      */
     @Parameter(defaultValue = "true")
     private boolean allowComments;
