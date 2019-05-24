@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.sylvainlaurent.maven</groupId>
   <artifactId>yaml-json-validator-maven-plugin</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.0.2.1</version>
   <packaging>maven-plugin</packaging>
   <name>yaml-json-validator-maven-plugin Maven Plugin</name>
   <description>A Maven Plugin to validate yaml and json document</description>
