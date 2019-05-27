@@ -1,4 +1,5 @@
 {
+  // this is an inline comment
   "id": 1,
   /* this is a comment */
   "value": "XYZ"

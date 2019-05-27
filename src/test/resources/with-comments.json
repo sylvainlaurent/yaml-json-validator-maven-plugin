@@ -5,6 +5,7 @@
   /* key-number */
   "key-number": 1,
   /* key-boolean */
+  // this is an inline comment
   "key-boolean": true,
   /* key-array */
   "key-array": ["this", "is", "an", "array"]
