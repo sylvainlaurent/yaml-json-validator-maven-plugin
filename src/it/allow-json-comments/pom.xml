@@ -37,7 +37,7 @@
                   </includes>
                 </validationSet>
               </validationSets>
-              <allowComments>true</allowComments>
+              <allowJsonComments>true</allowJsonComments>
             </configuration>
           </execution>
         </executions>

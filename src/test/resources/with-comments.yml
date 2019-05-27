@@ -1,11 +1,11 @@
-/* this is a commented json file */
-/* key-string */
-key-string: "string-value",
-/* key-number */
-key-number: 1,
-/* key-boolean */
-key-boolean: true,
-/* key-array */
+# this is a commented json file
+# with emulated multi line presented as two single line comments
+key-string: "string-value"
+# key-number
+key-number: 1
+# key-boolean
+key-boolean: true
+# key-array
 key-array:
   - "this"
   - "is"

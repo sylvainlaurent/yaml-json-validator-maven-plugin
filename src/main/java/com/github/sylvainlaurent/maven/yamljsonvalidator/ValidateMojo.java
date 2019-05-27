@@ -62,8 +62,8 @@ public class ValidateMojo extends AbstractMojo {
      * Set to <code>true</code> to allow json validation to pass if Java/C style
      * comments have been placed in JSON files.
      */
-    @Parameter(defaultValue = "true")
-    private boolean allowComments;
+    @Parameter(defaultValue = "false")
+    private boolean allowJsonComments;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -75,8 +75,12 @@ public class ValidateMojo extends AbstractMojo {
         }
 
         for (final ValidationSet set : validationSets) {
-            final ValidationService validationService = new ValidationService(set.getJsonSchema(),
-                allowEmptyFiles, detectDuplicateKeys, allowComments);
+            final ValidationService validationService = new ValidationService(
+                    set.getJsonSchema(),
+                    allowEmptyFiles,
+                    detectDuplicateKeys,
+                    allowJsonComments
+            );
 
             final File[] files = set.getFiles(basedir);
 
