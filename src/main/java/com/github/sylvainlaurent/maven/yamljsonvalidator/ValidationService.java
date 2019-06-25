@@ -1,8 +1,5 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +12,9 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
+import java.io.File;
+import java.io.IOException;
+
 public class ValidationService {
 
     private final ObjectMapper jsonMapper = new ObjectMapper();
@@ -23,18 +23,23 @@ public class ValidationService {
 
     private final boolean isEmptyFileAllowed;
 
-    public ValidationService(final File schemaFile, final boolean isEmptyFileAllowed,
-        final boolean detectDuplicateKeys) {
+    public ValidationService(final File schemaFile,
+                             final boolean isEmptyFileAllowed,
+                             final boolean detectDuplicateKeys,
+                             final boolean allowJsonComments) {
         schema = getJsonSchema(schemaFile);
         this.isEmptyFileAllowed = isEmptyFileAllowed;
         if (detectDuplicateKeys) {
             this.jsonMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
             this.yamlMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
         }
+        if (allowJsonComments) {
+            this.jsonMapper.enable(Feature.ALLOW_COMMENTS);
+        }
     }
 
     public ValidationService(final File schemaFile) {
-        this(schemaFile, false, true);
+        this(schemaFile, false, true, false);
     }
 
     public ValidationResult validate(final File file) {

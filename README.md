@@ -42,6 +42,8 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
               <!-- Duplicate keys detection is turned on by default. -->
               <detectDuplicateKeys>false</detectDuplicateKeys>
               <allowEmptyFiles>false</allowEmptyFiles>
+              <!-- Allow comments in json files is turned off by default -->
+              <allowJsonComments>true</allowJsonComments>
               <skip>false</skip>
             </configuration>
           </execution>
