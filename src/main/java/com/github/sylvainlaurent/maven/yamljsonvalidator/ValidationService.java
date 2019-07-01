@@ -1,5 +1,9 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,9 +15,7 @@ import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
-
-import java.io.File;
-import java.io.IOException;
+import com.github.sylvainlaurent.maven.yamljsonvalidator.downloader.ClasspathDownloader;
 
 public class ValidationService {
 
@@ -23,7 +25,7 @@ public class ValidationService {
 
     private final boolean isEmptyFileAllowed;
 
-    public ValidationService(final File schemaFile,
+    public ValidationService(final InputStream schemaFile,
                              final boolean isEmptyFileAllowed,
                              final boolean detectDuplicateKeys,
                              final boolean allowJsonComments) {
@@ -38,7 +40,7 @@ public class ValidationService {
         }
     }
 
-    public ValidationService(final File schemaFile) {
+    ValidationService(final InputStream schemaFile) {
         this(schemaFile, false, true, false);
     }
 
@@ -89,15 +91,16 @@ public class ValidationService {
         }
     }
 
-    private JsonSchema getJsonSchema(final File schemaFile) {
+    private JsonSchema getJsonSchema(final InputStream schemaFile) {
         if (schemaFile == null) {
             return null;
         }
         JsonSchema jsonSchema;
         try {
             // using INLINE dereferencing to avoid internet access while validating
-            final LoadingConfiguration loadingConfiguration = LoadingConfiguration.newBuilder()
-                    .dereferencing(Dereferencing.INLINE).freeze();
+            LoadingConfiguration loadingConfiguration =
+                    LoadingConfiguration.newBuilder().addScheme("classpath", new ClasspathDownloader())
+                            .dereferencing(Dereferencing.INLINE).freeze();
             final JsonSchemaFactory factory = JsonSchemaFactory.newBuilder()
                     .setLoadingConfiguration(loadingConfiguration).freeze();
 

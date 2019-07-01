@@ -8,17 +8,17 @@ public class ValidationSet {
     /**
      * may be null
      */
-    private File jsonSchema;
+    private String jsonSchema;
 
     private String[] includes;
 
     private String[] excludes;
 
-    public File getJsonSchema() {
+    public String getJsonSchema() {
         return jsonSchema;
     }
 
-    public void setJsonSchema(final File jsonSchema) {
+    public void setJsonSchema(final String jsonSchema) {
         this.jsonSchema = jsonSchema;
     }
 
@@ -57,4 +57,5 @@ public class ValidationSet {
 
         return files;
     }
+
 }

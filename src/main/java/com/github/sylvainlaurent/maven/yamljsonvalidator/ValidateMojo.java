@@ -8,6 +8,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 /**
  * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
@@ -75,8 +78,9 @@ public class ValidateMojo extends AbstractMojo {
         }
 
         for (final ValidationSet set : validationSets) {
+            InputStream inputStream = openJsonSchema(set.getJsonSchema());
             final ValidationService validationService = new ValidationService(
-                    set.getJsonSchema(),
+                    inputStream,
                     allowEmptyFiles,
                     detectDuplicateKeys,
                     allowJsonComments
@@ -101,6 +105,30 @@ public class ValidateMojo extends AbstractMojo {
         if (encounteredError) {
             throw new MojoExecutionException("Some files are not valid, see previous logs");
         }
+    }
+
+    InputStream openJsonSchema(String jsonSchemaFile) throws MojoExecutionException {
+        if (jsonSchemaFile != null && jsonSchemaFile.length() > 0) {
+            File file = new File(jsonSchemaFile);
+            if (file.isFile()) {
+                try {
+                    return new FileInputStream(file);
+                } catch (FileNotFoundException e) {
+                    throw new MojoExecutionException("Could not load schema file ["+ jsonSchemaFile + "]", e);
+                }
+            } else {
+                try {
+                    InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(jsonSchemaFile);
+                    if (inputStream != null) {
+                        return inputStream;
+                    }
+                    throw new MojoExecutionException("Could not load schema neither from filesystem nor classpath ["+ jsonSchemaFile + "]");
+                } catch (Exception e){
+                    throw new MojoExecutionException("Could not load schema file from classpath ["+ jsonSchemaFile + "]", e);
+                }
+            }
+        }
+        return null;
     }
 
 }
