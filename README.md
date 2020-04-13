@@ -44,6 +44,8 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
               <allowEmptyFiles>false</allowEmptyFiles>
               <!-- Allow comments in json files is turned off by default -->
               <allowJsonComments>true</allowJsonComments>
+              <!-- Trailing commas are not allwed by default -->
+              <allowTrailingComma>true</allowTrailingComma>
               <skip>false</skip>
             </configuration>
           </execution>
