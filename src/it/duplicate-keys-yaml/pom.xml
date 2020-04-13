@@ -26,7 +26,6 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <detectDuplicateKeys>true</detectDuplicateKeys>
               <validationSets>
                 <validationSet>
                   <includes>

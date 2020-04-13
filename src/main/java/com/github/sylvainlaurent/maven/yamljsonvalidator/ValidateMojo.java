@@ -55,8 +55,15 @@ public class ValidateMojo extends AbstractMojo {
     /**
      * Set to <code>true</code> to detect duplicate keys in JSON and YAML dictionaries.
      */
-    @Parameter(defaultValue = "false")
+    @Parameter(defaultValue = "true")
     private boolean detectDuplicateKeys;
+
+    /**
+     * Set to <code>true</code> to allow json validation to pass if Java/C style
+     * comments have been placed in JSON files.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean allowJsonComments;
 
     /**
      * Set to <code>true</code> to allow for single trailing comma following final value or member.
@@ -74,8 +81,12 @@ public class ValidateMojo extends AbstractMojo {
         }
 
         for (final ValidationSet set : validationSets) {
-            final ValidationService validationService = new ValidationService(set.getJsonSchema(),
-                allowEmptyFiles, detectDuplicateKeys, allowTrailingComma);
+            final ValidationService validationService = new ValidationService(
+                    set.getJsonSchema(),
+                    allowEmptyFiles,
+                    detectDuplicateKeys,
+                    allowJsonComments,
+                    allowTrailingComma);
 
             final File[] files = set.getFiles(basedir);
 

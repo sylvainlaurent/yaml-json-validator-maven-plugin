@@ -1,13 +1,11 @@
 
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 import java.io.File;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class ValidationServiceTest {
     private ValidationService service = new ValidationService(null);
@@ -82,5 +80,37 @@ public class ValidationServiceTest {
         service = new ValidationService(new File("src/test/resources/schema-with-ref.json"));
         final ValidationResult result = service.validate(new File("src/test/resources/swagger-editor-example.json"));
         assertFalse(result.hasError());
+    }
+
+    @Test
+    public void test_comments_allowed_in_json() {
+        service = new ValidationService(null, false, false, true, false);
+        final ValidationResult result = service.validate(new File("src/test/resources/with-comments.json"));
+        assertFalse(result.hasError());
+        assertTrue(result.getMessages().isEmpty());
+    }
+
+    @Test
+    public void test_comments_not_allowed_in_json() {
+        service = new ValidationService(null, false, false, false, false);
+        final ValidationResult result = service.validate(new File("src/test/resources/with-comments.json"));
+        assertTrue(result.hasError());
+        assertFalse(result.getMessages().isEmpty());
+    }
+
+    @Test
+    public void test_comments_allowed_in_yml() {
+        service = new ValidationService(null, false, false, true, false);
+        final ValidationResult result = service.validate(new File("src/test/resources/with-comments.yml"));
+        assertFalse(result.hasError());
+        assertTrue(result.getMessages().isEmpty());
+    }
+
+    @Test
+    public void test_comments_not_allowed_in_yml() {
+        service = new ValidationService(null, false, false, false, false);
+        final ValidationResult result = service.validate(new File("src/test/resources/with-comments.yml"));
+        assertFalse(result.hasError());
+        assertTrue(result.getMessages().isEmpty());
     }
 }

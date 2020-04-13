@@ -1,5 +1,7 @@
 # yaml-json-validator-maven-plugin
 
+[![Build Status](https://travis-ci.org/sylvainlaurent/yaml-json-validator-maven-plugin.svg?branch=master)](https://travis-ci.org/sylvainlaurent/yaml-json-validator-maven-plugin)
+
 This maven plugin allows to validate yaml and json files to check that they are well formed and optionally validate against JSON schemas.
 
 Both JSON and YAML files can be validated against a JSON schema. The library [fge/json-schema-validator](https://github.com/fge/json-schema-validator) is internally used for this.
@@ -37,7 +39,11 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
                   </includes>
                 </validationSet>
               </validationSets>
+              <!-- Duplicate keys detection is turned on by default. -->
+              <detectDuplicateKeys>false</detectDuplicateKeys>
               <allowEmptyFiles>false</allowEmptyFiles>
+              <!-- Allow comments in json files is turned off by default -->
+              <allowJsonComments>true</allowJsonComments>
               <skip>false</skip>
             </configuration>
           </execution>
