@@ -68,6 +68,12 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "false")
     private boolean allowJsonComments;
 
+    /**
+     * Set to <code>true</code> to allow for single trailing comma following final value or member.
+     */
+    @Parameter(defaultValue = "false")
+    private boolean allowTrailingComma;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -83,8 +89,8 @@ public class ValidateMojo extends AbstractMojo {
                     inputStream,
                     allowEmptyFiles,
                     detectDuplicateKeys,
-                    allowJsonComments
-            );
+                    allowJsonComments,
+                    allowTrailingComma);
 
             final File[] files = set.getFiles(basedir);
 

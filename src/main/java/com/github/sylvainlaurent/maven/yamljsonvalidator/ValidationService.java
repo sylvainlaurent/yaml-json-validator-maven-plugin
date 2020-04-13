@@ -28,7 +28,8 @@ public class ValidationService {
     public ValidationService(final InputStream schemaFile,
                              final boolean isEmptyFileAllowed,
                              final boolean detectDuplicateKeys,
-                             final boolean allowJsonComments) {
+                             final boolean allowJsonComments,
+                             final boolean allowTrailingComma) {
         schema = getJsonSchema(schemaFile);
         this.isEmptyFileAllowed = isEmptyFileAllowed;
         if (detectDuplicateKeys) {
@@ -38,10 +39,14 @@ public class ValidationService {
         if (allowJsonComments) {
             this.jsonMapper.enable(Feature.ALLOW_COMMENTS);
         }
+        if (allowTrailingComma) {
+            this.jsonMapper.enable(Feature.ALLOW_TRAILING_COMMA);
+            this.yamlMapper.enable(Feature.ALLOW_TRAILING_COMMA);
+        }
     }
 
-    ValidationService(final InputStream schemaFile) {
-        this(schemaFile, false, true, false);
+    public ValidationService(final InputStream schemaFile) {
+        this(schemaFile, false, true, false, false);
     }
 
     public ValidationResult validate(final File file) {

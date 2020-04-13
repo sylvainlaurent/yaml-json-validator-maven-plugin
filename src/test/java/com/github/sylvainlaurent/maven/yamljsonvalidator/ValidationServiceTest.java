@@ -83,7 +83,7 @@ public class ValidationServiceTest {
 
     @Test
     public void test_comments_allowed_in_json() {
-        service = new ValidationService(null, false, false, true);
+        service = new ValidationService(null, false, false, true, false);
         final ValidationResult result = service.validate(new File("src/test/resources/with-comments.json"));
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
@@ -91,7 +91,7 @@ public class ValidationServiceTest {
 
     @Test
     public void test_comments_not_allowed_in_json() {
-        service = new ValidationService(null, false, false, false);
+        service = new ValidationService(null, false, false, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/with-comments.json"));
         assertTrue(result.hasError());
         assertFalse(result.getMessages().isEmpty());
@@ -99,7 +99,7 @@ public class ValidationServiceTest {
 
     @Test
     public void test_comments_allowed_in_yml() {
-        service = new ValidationService(null, false, false, true);
+        service = new ValidationService(null, false, false, true, false);
         final ValidationResult result = service.validate(new File("src/test/resources/with-comments.yml"));
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
@@ -107,7 +107,7 @@ public class ValidationServiceTest {
 
     @Test
     public void test_comments_not_allowed_in_yml() {
-        service = new ValidationService(null, false, false, false);
+        service = new ValidationService(null, false, false, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/with-comments.yml"));
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
