@@ -7,3 +7,4 @@ pom.xml.*
 target/
 *.md.html
 /.idea
+/release.properties
