@@ -1,14 +1,14 @@
 
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
-import static org.junit.Assert.*;
-
 public class ValidationServiceAllowEmptyFilesTest {
-    private ValidationService service = new ValidationService(null, true, true, true, false);
+    private final ValidationService service = new ValidationService(null, true, true, true, false);
 
     @Test
     public void test_empty_file_yml() {

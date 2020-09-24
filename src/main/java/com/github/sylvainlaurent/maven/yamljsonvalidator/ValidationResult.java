@@ -5,7 +5,7 @@ import java.util.List;
 
 public class ValidationResult {
 	private final Throwable exc;
-	private List<String> messages = new ArrayList<>();
+	private final List<String> messages = new ArrayList<>();
 	private boolean hasError;
 
 	public ValidationResult() {
