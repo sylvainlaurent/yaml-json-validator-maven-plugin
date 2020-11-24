@@ -1,12 +1,9 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.load.Dereferencing;
@@ -16,6 +13,10 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.sylvainlaurent.maven.yamljsonvalidator.downloader.ClasspathDownloader;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class ValidationService {
 
@@ -58,7 +59,7 @@ public class ValidationService {
             JsonNode spec;
             try {
                 spec = readFileContent(file);
-                if (spec == null && !isEmptyFileAllowed) {
+                if ((spec == null || spec instanceof MissingNode) && !isEmptyFileAllowed) {
                     validationResult.addMessage("Empty file is not valid: " + file);
                     validationResult.encounteredError();
                     return validationResult;

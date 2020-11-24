@@ -5,7 +5,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,9 +17,6 @@ import java.io.InputStream;
  */
 @Mojo(name = "validate", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public class ValidateMojo extends AbstractMojo {
-
-    @Parameter(defaultValue = "${project}", required = true, readonly = true)
-    private MavenProject project;
 
     @Parameter(defaultValue = "${project.basedir}", required = true, readonly = true)
     private File basedir;
