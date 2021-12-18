@@ -38,6 +38,12 @@
                     <include>src/main/resources/malformed.yml</include>
                   </includes>
                 </validationSet>
+                <validationSet>
+                  <jsonSchema>https://swagger.io/v2/schema.json</jsonSchema>
+                  <includes>
+                    <include>src/main/resources/swagger-editor-example.yml</include>
+                  </includes>
+                </validationSet>
               </validationSets>
             </configuration>
           </execution>

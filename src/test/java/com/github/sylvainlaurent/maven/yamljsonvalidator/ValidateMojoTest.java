@@ -23,6 +23,12 @@ public class ValidateMojoTest {
         assertNotNull(validateMojo.openJsonSchema("src/test/resources/schema-with-ref.json"));
     }
 
+    @Test
+    public void accept_schema_from_http() throws MojoExecutionException {
+        ValidateMojo validateMojo = new ValidateMojo();
+        assertNotNull(validateMojo.openJsonSchema("https://json.schemastore.org/geojson.json"));
+    }
+
 
     @Test
     public void accept_schema_from_classpath() throws MojoExecutionException {

@@ -1,15 +1,17 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
@@ -111,23 +113,37 @@ public class ValidateMojo extends AbstractMojo {
 
     InputStream openJsonSchema(String jsonSchemaFile) throws MojoExecutionException {
         if (jsonSchemaFile != null && jsonSchemaFile.length() > 0) {
-            File file = new File(jsonSchemaFile);
-            if (file.isFile()) {
-                try {
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    throw new MojoExecutionException("Could not load schema file ["+ jsonSchemaFile + "]", e);
-                }
-            } else {
-                try {
-                    InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(jsonSchemaFile);
-                    if (inputStream != null) {
-                        return inputStream;
+            try {
+                URI uri = new URI(jsonSchemaFile);
+                if(uri.getScheme() == null) {
+                    File file = new File(jsonSchemaFile);
+                    if (file.isFile()) {
+                        try {
+                            return new FileInputStream(file);
+                        } catch (FileNotFoundException e) {
+                            throw new MojoExecutionException("Could not load schema file ["+ jsonSchemaFile + "]", e);
+                        }
+                    } else {
+                        try {
+                            InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(jsonSchemaFile);
+                            if (inputStream != null) {
+                                return inputStream;
+                            }
+                            throw new MojoExecutionException("Could not load schema neither from filesystem nor classpath ["+ jsonSchemaFile + "]");
+                        } catch (Exception e){
+                            throw new MojoExecutionException("Could not load schema file from classpath ["+ jsonSchemaFile + "]", e);
+                        }
                     }
-                    throw new MojoExecutionException("Could not load schema neither from filesystem nor classpath ["+ jsonSchemaFile + "]");
-                } catch (Exception e){
-                    throw new MojoExecutionException("Could not load schema file from classpath ["+ jsonSchemaFile + "]", e);
+                } else {
+                    try (final CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties().build()) {
+                        HttpGet get = new HttpGet();
+                        get.setURI(uri);
+                        return httpclient.execute(get).getEntity().getContent();
+                    }
                 }
+            } catch (URISyntaxException | IOException use) {
+                getLog().warn("An error occurs while reading schema from URI " + jsonSchemaFile);
+                getLog().debug(use);
             }
         }
         return null;
