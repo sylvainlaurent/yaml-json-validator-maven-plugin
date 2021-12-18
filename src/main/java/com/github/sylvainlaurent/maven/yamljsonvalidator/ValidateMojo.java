@@ -1,5 +1,6 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -138,7 +139,9 @@ public class ValidateMojo extends AbstractMojo {
                     try (final CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties().build()) {
                         HttpGet get = new HttpGet();
                         get.setURI(uri);
-                        return httpclient.execute(get).getEntity().getContent();
+                        try (CloseableHttpResponse response = httpclient.execute(get)) {
+                            return response.getEntity().getContent();
+                        }
                     }
                 }
             } catch (URISyntaxException | IOException use) {
