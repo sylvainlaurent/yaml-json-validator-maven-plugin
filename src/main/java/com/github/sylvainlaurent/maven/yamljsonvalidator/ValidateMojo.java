@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -93,15 +94,27 @@ public class ValidateMojo extends AbstractMojo {
         }
 
         for (final ValidationSet set : validationSets) {
-            InputStream inputStream = openJsonSchema(set.getJsonSchema());
-            final ValidationService validationService = new ValidationService(
-                    inputStream,
-                    allowEmptyFiles,
-                    detectDuplicateKeys,
-                    allowJsonComments,
-                    allowTrailingComma);
+            final String validationSetBaseDirStr = set.getBaseDir();
+            final File validationSetBaseDir = validationSetBaseDirStr != null
+                    ? new File(validationSetBaseDirStr) : this.basedir;
+            final String setJsonSchema = set.getJsonSchema();
+            final ValidationService validationService;
+            try (InputStream inputStream = openJsonSchema(
+                    setJsonSchema != null
+                            ? new File(validationSetBaseDir, setJsonSchema).toString()
+                            : null
+            )) {
+                validationService = new ValidationService(
+                        inputStream,
+                        allowEmptyFiles,
+                        detectDuplicateKeys,
+                        allowJsonComments,
+                        allowTrailingComma);
+            } catch (IOException ex) {
+                throw new MojoExecutionException("Failed to read schema", ex);
+            }
 
-            final File[] files = ValidationSet.getFiles(set, basedir, followSymlinks, addDefaultExcludes);
+            final File[] files = ValidationSet.getFiles(set, getLog(), basedir, followSymlinks, addDefaultExcludes);
 
             for (final File file : files) {
                 if (verbose) {

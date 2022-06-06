@@ -1,5 +1,6 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.shared.utils.io.DirectoryScanner;
 
 import java.io.File;
@@ -13,6 +14,8 @@ public class ValidationSet {
     private String[] includes;
 
     private String[] excludes;
+
+    private String baseDir;
 
     public String getJsonSchema() {
         return jsonSchema;
@@ -38,10 +41,21 @@ public class ValidationSet {
         this.excludes = excludes;
     }
 
-    public static File[] getFiles(final ValidationSet validationSet, final File basedir, final boolean followSymlinks,
-                                  final boolean addDefaultExcludes) {
+    public String getBaseDir() {
+        return baseDir;
+    }
+
+    public void setBaseDir(String baseDir) {
+        this.baseDir = baseDir;
+    }
+
+    public static File[] getFiles(final ValidationSet validationSet, final Log log, final File projectBaseDir,
+                                  final boolean followSymlinks, final boolean addDefaultExcludes) {
         final DirectoryScanner ds = new DirectoryScanner();
-        ds.setBasedir(basedir);
+        final String validationSetBaseDirStr = validationSet.getBaseDir();
+        final File validationSetBaseDir = validationSetBaseDirStr != null
+                ? new File(validationSetBaseDirStr) : projectBaseDir;
+        ds.setBasedir(validationSetBaseDir);
         ds.setFollowSymlinks(followSymlinks);
         if (addDefaultExcludes) {
             ds.addDefaultExcludes();
@@ -52,12 +66,20 @@ public class ValidationSet {
         if (validationSet.excludes != null && validationSet.excludes.length > 0) {
             ds.setExcludes(validationSet.excludes);
         }
+
+        if (validationSetBaseDir == null
+                || !validationSetBaseDir.exists()
+                || !validationSetBaseDir.isDirectory()) {
+            log.warn("Directory " + validationSetBaseDir + " does not exist or is not a directory. Skipping.");
+            return new File[0];
+        }
+
         ds.scan();
         final String[] filePaths = ds.getIncludedFiles();
         final File[] files = new File[filePaths.length];
 
         for (int i = 0; i < filePaths.length; i++) {
-            files[i] = new File(basedir, filePaths[i]);
+            files[i] = new File(validationSetBaseDir, filePaths[i]);
         }
 
         return files;
