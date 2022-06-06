@@ -1,8 +1,8 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
-import java.io.File;
+import org.apache.maven.shared.utils.io.DirectoryScanner;
 
-import org.codehaus.plexus.util.DirectoryScanner;
+import java.io.File;
 
 public class ValidationSet {
     /**
@@ -38,14 +38,15 @@ public class ValidationSet {
         this.excludes = excludes;
     }
 
-    public File[] getFiles(final File basedir) {
+    public static File[] getFiles(final ValidationSet validationSet, final File basedir, boolean followSymlinks) {
         final DirectoryScanner ds = new DirectoryScanner();
         ds.setBasedir(basedir);
-        if (includes != null && includes.length > 0) {
-            ds.setIncludes(includes);
+        ds.setFollowSymlinks(followSymlinks);
+        if (validationSet.includes != null && validationSet.includes.length > 0) {
+            ds.setIncludes(validationSet.includes);
         }
-        if (excludes != null && excludes.length > 0) {
-            ds.setExcludes(excludes);
+        if (validationSet.excludes != null && validationSet.excludes.length > 0) {
+            ds.setExcludes(validationSet.excludes);
         }
         ds.scan();
         final String[] filePaths = ds.getIncludedFiles();

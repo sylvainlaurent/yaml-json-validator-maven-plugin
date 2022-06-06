@@ -29,7 +29,7 @@ public class ValidateMojo extends AbstractMojo {
      * and <code>&lt;exclude&gt;</code> elements respectively to specify lists of file masks of
      * included and excluded files. The file masks are treated as paths relative to
      * <code>${project.basedir}</code> and their syntax is that of
-     * <code>org.codehaus.plexus.util.DirectoryScanner</code>.</p>
+     * <code>org.apache.maven.shared.utils.io.DirectoryScanner</code>.</p>
      *
      * <p>JSON schema can be specified with <code>&lt;jsonSchema&gt;</code> element.</p>
      */
@@ -70,6 +70,12 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "false")
     private boolean allowTrailingComma;
 
+    /**
+     * Set to <code>true</code> to follow symlinks.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean followSymlinks;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -88,7 +94,7 @@ public class ValidateMojo extends AbstractMojo {
                     allowJsonComments,
                     allowTrailingComma);
 
-            final File[] files = set.getFiles(basedir);
+            final File[] files = ValidationSet.getFiles(set, basedir, followSymlinks);
 
             for (final File file : files) {
                 if (verbose) {
