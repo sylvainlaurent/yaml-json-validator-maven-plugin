@@ -76,6 +76,13 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "true")
     private boolean followSymlinks;
 
+    /**
+     * Set to <code>true</code> to include default excludes. Default excludes contain excludes for backup files and
+     * SCM directories.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean addDefaultExcludes;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -94,7 +101,7 @@ public class ValidateMojo extends AbstractMojo {
                     allowJsonComments,
                     allowTrailingComma);
 
-            final File[] files = ValidationSet.getFiles(set, basedir, followSymlinks);
+            final File[] files = ValidationSet.getFiles(set, basedir, followSymlinks, addDefaultExcludes);
 
             for (final File file : files) {
                 if (verbose) {

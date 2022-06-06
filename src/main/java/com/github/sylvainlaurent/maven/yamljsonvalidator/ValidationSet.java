@@ -38,10 +38,14 @@ public class ValidationSet {
         this.excludes = excludes;
     }
 
-    public static File[] getFiles(final ValidationSet validationSet, final File basedir, boolean followSymlinks) {
+    public static File[] getFiles(final ValidationSet validationSet, final File basedir, final boolean followSymlinks,
+                                  final boolean addDefaultExcludes) {
         final DirectoryScanner ds = new DirectoryScanner();
         ds.setBasedir(basedir);
         ds.setFollowSymlinks(followSymlinks);
+        if (addDefaultExcludes) {
+            ds.addDefaultExcludes();
+        }
         if (validationSet.includes != null && validationSet.includes.length > 0) {
             ds.setIncludes(validationSet.includes);
         }
