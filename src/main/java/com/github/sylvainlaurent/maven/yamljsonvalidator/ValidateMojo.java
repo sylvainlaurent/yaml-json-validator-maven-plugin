@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -29,7 +30,7 @@ public class ValidateMojo extends AbstractMojo {
      * and <code>&lt;exclude&gt;</code> elements respectively to specify lists of file masks of
      * included and excluded files. The file masks are treated as paths relative to
      * <code>${project.basedir}</code> and their syntax is that of
-     * <code>org.codehaus.plexus.util.DirectoryScanner</code>.</p>
+     * <code>org.apache.maven.shared.utils.io.DirectoryScanner</code>.</p>
      *
      * <p>JSON schema can be specified with <code>&lt;jsonSchema&gt;</code> element.</p>
      */
@@ -70,6 +71,19 @@ public class ValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "false")
     private boolean allowTrailingComma;
 
+    /**
+     * Set to <code>true</code> to follow symlinks.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean followSymlinks;
+
+    /**
+     * Set to <code>true</code> to include default excludes. Default excludes contain excludes for backup files and
+     * SCM directories.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean addDefaultExcludes;
+
     @Override
     public void execute() throws MojoExecutionException {
         boolean encounteredError = false;
@@ -80,15 +94,27 @@ public class ValidateMojo extends AbstractMojo {
         }
 
         for (final ValidationSet set : validationSets) {
-            InputStream inputStream = openJsonSchema(set.getJsonSchema());
-            final ValidationService validationService = new ValidationService(
-                    inputStream,
-                    allowEmptyFiles,
-                    detectDuplicateKeys,
-                    allowJsonComments,
-                    allowTrailingComma);
+            final String validationSetBaseDirStr = set.getBaseDir();
+            final File validationSetBaseDir = validationSetBaseDirStr != null
+                    ? new File(validationSetBaseDirStr) : this.basedir;
+            final String setJsonSchema = set.getJsonSchema();
+            final ValidationService validationService;
+            try (InputStream inputStream = openJsonSchema(
+                    setJsonSchema != null
+                            ? new File(validationSetBaseDir, setJsonSchema).toString()
+                            : null
+            )) {
+                validationService = new ValidationService(
+                        inputStream,
+                        allowEmptyFiles,
+                        detectDuplicateKeys,
+                        allowJsonComments,
+                        allowTrailingComma);
+            } catch (IOException ex) {
+                throw new MojoExecutionException("Failed to read schema", ex);
+            }
 
-            final File[] files = set.getFiles(basedir);
+            final File[] files = ValidationSet.getFiles(set, getLog(), basedir, followSymlinks, addDefaultExcludes);
 
             for (final File file : files) {
                 if (verbose) {

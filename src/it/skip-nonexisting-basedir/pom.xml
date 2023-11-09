@@ -26,13 +26,11 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <detectDuplicateKeys>false</detectDuplicateKeys>
               <validationSets>
                 <validationSet>
-                  <baseDir>src</baseDir>
-                  <jsonSchema>main/resources/swagger-schema.json</jsonSchema>
+                  <baseDir>${project.basedir}/doesnotexist</baseDir>
                   <includes>
-                    <include>main/resources/swagger-*.yml</include>
+                    <include>src/main/resources/*.yml</include>
                   </includes>
                 </validationSet>
               </validationSets>
