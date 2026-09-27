@@ -4,7 +4,16 @@
 
 This maven plugin allows to validate yaml and json files to check that they are well formed and optionally validate against JSON schemas.
 
-Both JSON and YAML files can be validated against a JSON schema. The library [fge/json-schema-validator](https://github.com/fge/json-schema-validator) is internally used for this.
+Both JSON and YAML files can be validated against a JSON schema. The library [NetworkNT JSON Schema Validator](https://github.com/networknt/json-schema-validator) is internally used for this.
+
+Supported schema drafts are Draft 4, Draft 6, Draft 7, 2019-09, and 2020-12.
+Schemas without a `$schema` declaration use Draft 4. Draft 3 is no longer supported.
+References can use `classpath:` to load schemas from the plugin's classpath, including
+dependencies declared on the plugin, as well as explicit file or HTTP(S) URLs.
+
+Unknown string formats, such as `"format": "boolean"`, are ignored under Draft 4.
+To restrict a string to boolean spellings, use `"enum": ["true", "false"]`;
+to require a JSON boolean value, use `"type": "boolean"`.
 
 ## Plugin configuration
 
@@ -55,4 +64,4 @@ Both JSON and YAML files can be validated against a JSON schema. The library [fg
 
 Validation failures make the build fail.
 
-Requires java 1.7.
+Requires Java 8.

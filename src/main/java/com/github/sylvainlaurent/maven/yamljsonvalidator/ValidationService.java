@@ -1,28 +1,28 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
 import com.fasterxml.jackson.core.JsonParser.Feature;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.load.Dereferencing;
-import com.github.fge.jsonschema.core.load.configuration.LoadingConfiguration;
-import com.github.fge.jsonschema.core.report.ProcessingMessage;
-import com.github.fge.jsonschema.core.report.ProcessingReport;
-import com.github.fge.jsonschema.main.JsonSchema;
-import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import com.github.sylvainlaurent.maven.yamljsonvalidator.downloader.ClasspathDownloader;
+import com.networknt.schema.Error;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaException;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.resource.SchemaLoader;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 public class ValidationService {
 
     private final ObjectMapper jsonMapper = new ObjectMapper();
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-    private final JsonSchema schema;
+    private final Schema schema;
 
     private final boolean isEmptyFileAllowed;
 
@@ -41,8 +41,8 @@ public class ValidationService {
             this.jsonMapper.enable(Feature.ALLOW_COMMENTS);
         }
         if (allowTrailingComma) {
-            this.jsonMapper.enable(Feature.ALLOW_TRAILING_COMMA);
-            this.yamlMapper.enable(Feature.ALLOW_TRAILING_COMMA);
+            this.jsonMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
+            this.yamlMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
         }
     }
 
@@ -84,38 +84,33 @@ public class ValidationService {
             return;
         }
         try {
-            final ProcessingReport report = schema.validate(spec);
-            if (!report.isSuccess()) {
+            final List<Error> errors = schema.validate(spec);
+            if (!errors.isEmpty()) {
                 validationResult.encounteredError();
             }
-            for (final ProcessingMessage processingMessage : report) {
-                validationResult.addMessage(processingMessage.toString());
+            for (final Error error : errors) {
+                validationResult.addMessage(error.toString());
             }
-        } catch (final ProcessingException e) {
+        } catch (final SchemaException e) {
             validationResult.addMessage(e.getMessage());
             validationResult.encounteredError();
         }
     }
 
-    private JsonSchema getJsonSchema(final InputStream schemaFile) {
+    private Schema getJsonSchema(final InputStream schemaFile) {
         if (schemaFile == null) {
             return null;
         }
-        JsonSchema jsonSchema;
         try {
-            // using INLINE dereferencing to avoid internet access while validating
-            LoadingConfiguration loadingConfiguration =
-                    LoadingConfiguration.newBuilder().addScheme("classpath", new ClasspathDownloader())
-                            .dereferencing(Dereferencing.INLINE).freeze();
-            final JsonSchemaFactory factory = JsonSchemaFactory.newBuilder()
-                    .setLoadingConfiguration(loadingConfiguration).freeze();
-
+            // Preserve Draft 4 as the default and support explicit file/URL references.
+            // NetworkNT resolves bundled meta-schemas and classpath references locally.
+            final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4,
+                    builder -> builder.schemaLoader(SchemaLoader.getRemoteFetcher()));
             final JsonNode schemaObject = jsonMapper.readTree(schemaFile);
-            jsonSchema = factory.getJsonSchema(schemaObject);
-        } catch (IOException | ProcessingException e) {
+            return registry.getSchema(schemaObject);
+        } catch (IOException | SchemaException e) {
             throw new RuntimeException(e);
         }
-        return jsonSchema;
     }
 
     private JsonNode readFileContent(final File file) throws IOException {
