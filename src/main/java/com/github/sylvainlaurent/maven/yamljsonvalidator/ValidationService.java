@@ -1,6 +1,7 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
 import com.fasterxml.jackson.core.JsonParser.Feature;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
@@ -41,8 +42,8 @@ public class ValidationService {
             this.jsonMapper.enable(Feature.ALLOW_COMMENTS);
         }
         if (allowTrailingComma) {
-            this.jsonMapper.enable(Feature.ALLOW_TRAILING_COMMA);
-            this.yamlMapper.enable(Feature.ALLOW_TRAILING_COMMA);
+            this.jsonMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
+            this.yamlMapper.enable(JsonReadFeature.ALLOW_TRAILING_COMMA.mappedFeature());
         }
     }
 
