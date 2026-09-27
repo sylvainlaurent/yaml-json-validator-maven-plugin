@@ -1,0 +1,5 @@
+{
+  "definitions": {
+    "positive": {"type": "integer", "minimum": 1}
+  }
+}

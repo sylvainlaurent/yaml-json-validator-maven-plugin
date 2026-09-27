@@ -31,7 +31,23 @@ public class ValidationService {
                              final boolean detectDuplicateKeys,
                              final boolean allowJsonComments,
                              final boolean allowTrailingComma) {
-        schema = getJsonSchema(schemaFile);
+        this(getJsonSchema(schemaFile), isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+    }
+
+    static ValidationService forSchema(final Schema schema,
+                                       final boolean isEmptyFileAllowed,
+                                       final boolean detectDuplicateKeys,
+                                       final boolean allowJsonComments,
+                                       final boolean allowTrailingComma) {
+        return new ValidationService(schema, isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+    }
+
+    private ValidationService(final Schema schema,
+                              final boolean isEmptyFileAllowed,
+                              final boolean detectDuplicateKeys,
+                              final boolean allowJsonComments,
+                              final boolean allowTrailingComma) {
+        this.schema = schema;
         this.isEmptyFileAllowed = isEmptyFileAllowed;
         if (detectDuplicateKeys) {
             this.jsonMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
@@ -97,7 +113,7 @@ public class ValidationService {
         }
     }
 
-    private Schema getJsonSchema(final InputStream schemaFile) {
+    private static Schema getJsonSchema(final InputStream schemaFile) {
         if (schemaFile == null) {
             return null;
         }
@@ -106,7 +122,7 @@ public class ValidationService {
             // NetworkNT resolves bundled meta-schemas and classpath references locally.
             final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4,
                     builder -> builder.schemaLoader(SchemaLoader.getRemoteFetcher()));
-            final JsonNode schemaObject = jsonMapper.readTree(schemaFile);
+            final JsonNode schemaObject = new ObjectMapper().readTree(schemaFile);
             return registry.getSchema(schemaObject);
         } catch (IOException | SchemaException e) {
             throw new RuntimeException(e);
