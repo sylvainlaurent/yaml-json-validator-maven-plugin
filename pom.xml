@@ -41,7 +41,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>1.8</java.version>
     <json-schema-validator-version>2.2.14</json-schema-validator-version>
-    <jackson-version>2.11.2</jackson-version>
+    <jackson-version>2.22.3</jackson-version>
   </properties>
 
   <dependencies>
