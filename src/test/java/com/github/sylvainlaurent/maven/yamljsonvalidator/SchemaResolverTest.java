@@ -14,10 +14,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.io.TempDir;
 
 public class SchemaResolverTest {
-    private final SchemaResolver resolver = new SchemaResolver(new File("."), null, true, false);
+    private final List<SchemaResolver> resolvers = new ArrayList<>();
+    private final SchemaResolver resolver = resolver(new File("."), null, true, false);
     @TempDir
     Path directory;
     @Test
@@ -53,7 +57,7 @@ public class SchemaResolverTest {
             mapping("https://example.invalid/schemas/root.json", "root override.json")
         };
         for (boolean offline : new boolean[] {false, true}) {
-            SchemaResolver mapped = new SchemaResolver(directory.toFile(), mappings, false, offline);
+            SchemaResolver mapped = resolver(directory.toFile(), mappings, false, offline);
             assertPositiveInteger(mapped.load("https://example.invalid/schemas/root.json"));
             assertPositiveInteger(mapped.load("https://example.invalid/schemas/integer.json#/definitions/positive"));
         }
@@ -62,7 +66,7 @@ public class SchemaResolverTest {
     @Test
     public void plain_root_paths_are_project_relative_and_prefer_files_to_classpath() throws Exception {
         write("schema-with-ref.json", "{\"type\":\"integer\",\"minimum\":1}");
-        SchemaResolver local = new SchemaResolver(directory.toFile(), null, false, true);
+        SchemaResolver local = resolver(directory.toFile(), null, false, true);
         assertPositiveInteger(local.load("schema-with-ref.json"));
         assertPositiveInteger(local.load(directory.resolve("schema-with-ref.json").toString()));
         assertPositiveInteger(local.load(directory.resolve("schema-with-ref.json").toUri().toString()));
@@ -72,7 +76,7 @@ public class SchemaResolverTest {
     public void relative_file_references_support_spaces() throws Exception {
         write("root schema.json", "{\"$ref\":\"integer%20schema.json\"}");
         write("integer schema.json", "{\"type\":\"integer\",\"minimum\":1}");
-        assertPositiveInteger(new SchemaResolver(directory.toFile(), null, false, true).load("root schema.json"));
+        assertPositiveInteger(resolver(directory.toFile(), null, false, true).load("root schema.json"));
     }
 
     @Test
@@ -80,7 +84,7 @@ public class SchemaResolverTest {
         ClassLoader original = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(new ClassLoader(null) { });
-            SchemaResolver mapped = new SchemaResolver(directory.toFile(), new SchemaMapping[] {
+            SchemaResolver mapped = resolver(directory.toFile(), new SchemaMapping[] {
                 mapping("https://example.invalid/*", "classpath:schemas/")
             }, false, true);
             assertPositiveInteger(mapped.load("https://example.invalid/positive-integer.json"));
@@ -97,7 +101,7 @@ public class SchemaResolverTest {
         try (URLClassLoader resources = new URLClassLoader(new URL[] {directory.toUri().toURL()}, original)) {
             Thread.currentThread().setContextClassLoader(resources);
             // The resources are on the classpath, outside the project's filesystem lookup.
-            SchemaResolver classpath = new SchemaResolver(directory.resolve("project").toFile(),
+            SchemaResolver classpath = resolver(directory.resolve("project").toFile(),
                     new SchemaMapping[] {mapping("https://example.invalid/*", "classpath:")}, false, true);
             assertPositiveInteger(classpath.load("root schema.json"));
             assertPositiveInteger(classpath.load("classpath:root%20schema.json"));
@@ -112,6 +116,17 @@ public class SchemaResolverTest {
         assertTrue(schema.validate(mapper.readTree("2")).isEmpty());
         assertFalse(schema.validate(mapper.readTree("0")).isEmpty());
         assertFalse(schema.validate(mapper.readTree("\"2\"")).isEmpty());
+    }
+
+    private SchemaResolver resolver(File basedir, SchemaMapping[] mappings, boolean remote, boolean offline) {
+        SchemaResolver resolver = new SchemaResolver(basedir, mappings, remote, offline);
+        resolvers.add(resolver);
+        return resolver;
+    }
+
+    @AfterEach
+    void closeResolvers() {
+        resolvers.forEach(SchemaResolver::close);
     }
 
     private void write(String name, String content) throws Exception {

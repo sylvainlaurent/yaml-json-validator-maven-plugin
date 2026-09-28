@@ -8,8 +8,21 @@ Both JSON and YAML files can be validated against a JSON schema. The library [Ne
 
 Supported schema drafts are Draft 4, Draft 6, Draft 7, 2019-09, and 2020-12.
 Schemas without a `$schema` declaration use Draft 4. Draft 3 is no longer supported.
+Before validating input files, each configured root schema is checked against its
+dialect's meta-schema, including constraints in nested schema keywords. Invalid
+schemas fail the build even if no input files match. The standard meta-schemas are
+bundled with the validator and work offline. This check does not recursively
+validate the syntax of separate documents reached through `$ref`.
+
+Regular expressions use NetworkNT's GraalJS adapter for ECMA-262 semantics in
+`pattern`, `patternProperties`, and regex format checks. GraalJS is pinned to
+21.3.10 to retain Java 8 support; it runs on an ordinary JDK and does not require a
+GraalVM installation.
+
 References can use `classpath:` to load schemas from the plugin's classpath, including
 dependencies declared on the plugin, as well as explicit file or HTTP(S) URLs.
+Classpath resource names are exact, allowing the usual leading slash. Falling back
+to another classloader never changes the requested name.
 
 Unknown string formats, such as `"format": "boolean"`, are ignored under Draft 4.
 To restrict a string to boolean spellings, use `"enum": ["true", "false"]`;
@@ -128,3 +141,20 @@ When an unmapped reference requires disabled network access, validation fails wi
 an explanation.
 
 Requires Java 8.
+
+## Using ValidationService directly
+
+`ValidationService` implements `AutoCloseable`. Use try-with-resources when calling
+its public constructors so the GraalJS context is released after all files have
+been validated:
+
+```java
+try (InputStream schema = Files.newInputStream(schemaPath);
+     ValidationService service = new ValidationService(schema)) {
+    ValidationResult result = service.validate(inputFile);
+}
+```
+
+The Maven goal handles this lifecycle automatically, sharing one resolver across
+its validation sets and closing it on success or failure. Validation without a
+schema does not create a GraalJS context.

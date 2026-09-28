@@ -42,6 +42,8 @@
     <java.version>1.8</java.version>
     <json-schema-validator-version>2.0.7</json-schema-validator-version>
     <jackson-version>2.22.3</jackson-version>
+    <!-- GraalJS 22.x and later require a newer JDK than Java 8. -->
+    <graaljs-version>21.3.10</graaljs-version>
   </properties>
 
   <dependencies>
@@ -69,6 +71,16 @@
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
       <version>${json-schema-validator-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.js</groupId>
+      <artifactId>js</artifactId>
+      <version>${graaljs-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.sdk</groupId>
+      <artifactId>graal-sdk</artifactId>
+      <version>${graaljs-version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

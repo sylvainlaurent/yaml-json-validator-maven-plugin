@@ -10,9 +10,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.io.TempDir;
 
 public class ValidationServiceSchemaTest {
+    private final List<ValidationService> services = new ArrayList<>();
+
+    @AfterEach
+    void closeServices() {
+        services.forEach(ValidationService::close);
+    }
+
     @TempDir
     Path directory;
 
@@ -87,7 +97,9 @@ public class ValidationServiceSchemaTest {
     }
 
     private ValidationService service(String schema) {
-        return new ValidationService(new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)));
+        ValidationService service = new ValidationService(new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)));
+        services.add(service);
+        return service;
     }
 
     private ValidationResult validate(ValidationService service, String json) throws IOException {

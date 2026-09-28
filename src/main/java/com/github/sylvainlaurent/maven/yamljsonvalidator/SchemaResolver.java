@@ -1,49 +1,52 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.AbsoluteIri;
+import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SchemaRegistryConfig;
 import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.regex.GraalJSRegularExpressionFactory;
 import com.networknt.schema.resource.InputStreamSource;
 import com.networknt.schema.resource.IriResourceLoader;
 import com.networknt.schema.resource.SchemaLoader;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
-import java.util.Locale;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+import org.graalvm.polyglot.Context;
 
 /** Shares schema mappings, retrieval policy and the schema cache across validation sets. */
-final class SchemaResolver {
+final class SchemaResolver implements AutoCloseable {
     private final File basedir;
     private final boolean allowRemoteSchemas;
     private final boolean offline;
-    private final SchemaRegistry registry;
+    private final SchemaLoader loader;
+    private final Set<Schema> checkedSchemas = Collections.newSetFromMap(new IdentityHashMap<Schema, Boolean>());
+    private SchemaRegistry registry;
+    private Context context;
+    private boolean closed;
 
     SchemaResolver(File basedir, SchemaMapping[] mappings, boolean allowRemoteSchemas, boolean offline) {
         this.basedir = basedir;
         this.allowRemoteSchemas = allowRemoteSchemas;
         this.offline = offline;
         SchemaCatalog catalog = new SchemaCatalog(basedir, mappings);
-        SchemaLoader loader = new SchemaLoader(Collections.singletonList(catalog), Collections.singletonList(this::getResource)) {
-            @Override
-            protected InputStreamSource getClasspathResource(AbsoluteIri location) {
-                String scheme = location.getScheme();
-                if ("classpath".equalsIgnoreCase(scheme) || "resource".equalsIgnoreCase(scheme)) {
-                    // The built-in loader expects resource names, so decode URI escapes at this boundary.
-                    String name = URI.create(location.toString()).getSchemeSpecificPart();
-                    location = AbsoluteIri.of(scheme.toLowerCase(Locale.ROOT) + ":" + name);
-                }
-                return super.getClasspathResource(location);
-            }
-        };
-        registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4, builder -> builder.schemaLoader(loader));
+        loader = new ExactClasspathSchemaLoader(Collections.singletonList(catalog),
+                Collections.singletonList(this::getResource));
     }
 
     Schema load(String schema) {
+        ensureOpen();
         if (schema == null || schema.isEmpty()) {
             return null;
         }
@@ -64,7 +67,66 @@ final class SchemaResolver {
             }
         }
         // Keep the original identifier as the base for relative references; map only at retrieval time.
-        return registry.getSchema(SchemaLocation.of(location));
+        return prepare(registry().getSchema(SchemaLocation.of(location)), location);
+    }
+
+    Schema loadStream(InputStream schema) throws IOException {
+        ensureOpen();
+        if (schema == null) {
+            return null;
+        }
+        return prepare(registry().getSchema(new ObjectMapper().readTree(schema)),
+                "input stream");
+    }
+
+    private Schema prepare(Schema schema, String location) {
+        if (!checkedSchemas.contains(schema)) {
+            String dialect = schema.getSchemaContext().getDialect().getId();
+            Schema metaSchema = registry().getSchema(SchemaLocation.of(dialect));
+            List<Error> errors = metaSchema.validate(schema.getSchemaNode(), execution ->
+                    execution.executionConfig(config -> config.formatAssertionsEnabled(true)));
+            if (!errors.isEmpty()) {
+                throw new SchemaException("Invalid schema [" + location + "]: " + errors);
+            }
+            checkedSchemas.add(schema);
+        }
+        return schema;
+    }
+
+    private SchemaRegistry registry() {
+        if (registry == null) {
+            Context created = Context.newBuilder("js").option("engine.WarnInterpreterOnly", "false").build();
+            try {
+                SchemaRegistryConfig config = SchemaRegistryConfig.builder()
+                        .regularExpressionFactory(new GraalJSRegularExpressionFactory(created)).build();
+                registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4,
+                        builder -> builder.schemaLoader(loader).schemaRegistryConfig(config));
+                context = created;
+            } catch (RuntimeException | java.lang.Error e) {
+                created.close();
+                throw e;
+            }
+        }
+        return registry;
+    }
+
+    private void ensureOpen() {
+        if (closed) {
+            throw new IllegalStateException("Schema resolver is closed");
+        }
+    }
+
+    @Override
+    public void close() {
+        if (!closed) {
+            closed = true;
+            checkedSchemas.clear();
+            registry = null;
+            if (context != null) {
+                context.close();
+                context = null;
+            }
+        }
     }
 
     private InputStreamSource getResource(AbsoluteIri location) {

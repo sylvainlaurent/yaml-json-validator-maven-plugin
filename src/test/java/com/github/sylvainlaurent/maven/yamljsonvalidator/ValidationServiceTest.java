@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,6 +14,11 @@ import java.io.FileNotFoundException;
 
 public class ValidationServiceTest {
     private ValidationService service = new ValidationService(null);
+
+    @AfterEach
+    void closeService() {
+        service.close();
+    }
 
     @Test
     public void test_empty_file_yml() {

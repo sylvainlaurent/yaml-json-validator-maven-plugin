@@ -13,6 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
@@ -32,6 +34,7 @@ public class RemoteSchemaTest {
     @TempDir
     Path directory;
     private HttpServer server;
+    private final List<SchemaResolver> resolvers = new ArrayList<>();
     private final AtomicInteger requests = new AtomicInteger();
 
     @BeforeEach
@@ -43,6 +46,7 @@ public class RemoteSchemaTest {
 
     @AfterEach
     public void stop_server() {
+        resolvers.forEach(SchemaResolver::close);
         server.stop(0);
     }
 
@@ -132,7 +136,9 @@ public class RemoteSchemaTest {
     }
 
     private SchemaResolver resolver(SchemaMapping[] mappings, boolean remote, boolean offline) {
-        return new SchemaResolver(directory.toFile(), mappings, remote, offline);
+        SchemaResolver resolver = new SchemaResolver(directory.toFile(), mappings, remote, offline);
+        resolvers.add(resolver);
+        return resolver;
     }
 
     private String baseUrl() {

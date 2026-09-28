@@ -9,20 +9,20 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.resource.SchemaLoader;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-public class ValidationService {
+/** Validates files; close the service after use to release its owned schema resources. */
+public class ValidationService implements AutoCloseable {
 
     private final ObjectMapper jsonMapper = new ObjectMapper();
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private final Schema schema;
+    private final SchemaResolver ownedResolver;
+    private boolean closed;
 
     private final boolean isEmptyFileAllowed;
 
@@ -31,7 +31,7 @@ public class ValidationService {
                              final boolean detectDuplicateKeys,
                              final boolean allowJsonComments,
                              final boolean allowTrailingComma) {
-        this(getJsonSchema(schemaFile), isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+        this(null, schemaFile, isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
     }
 
     static ValidationService forSchema(final Schema schema,
@@ -39,15 +39,27 @@ public class ValidationService {
                                        final boolean detectDuplicateKeys,
                                        final boolean allowJsonComments,
                                        final boolean allowTrailingComma) {
-        return new ValidationService(schema, isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+        return new ValidationService(schema, null, isEmptyFileAllowed, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
     }
 
     private ValidationService(final Schema schema,
+                              final InputStream schemaFile,
                               final boolean isEmptyFileAllowed,
                               final boolean detectDuplicateKeys,
                               final boolean allowJsonComments,
                               final boolean allowTrailingComma) {
-        this.schema = schema;
+        ownedResolver = schemaFile == null ? null : new SchemaResolver(new File("."), null, true, false);
+        try {
+            this.schema = ownedResolver == null ? schema : ownedResolver.loadStream(schemaFile);
+        } catch (IOException e) {
+            ownedResolver.close();
+            throw new SchemaException(e);
+        } catch (RuntimeException | java.lang.Error e) {
+            if (ownedResolver != null) {
+                ownedResolver.close();
+            }
+            throw e;
+        }
         this.isEmptyFileAllowed = isEmptyFileAllowed;
         if (detectDuplicateKeys) {
             this.jsonMapper.enable(Feature.STRICT_DUPLICATE_DETECTION);
@@ -67,6 +79,9 @@ public class ValidationService {
     }
 
     public ValidationResult validate(final File file) {
+        if (closed) {
+            throw new IllegalStateException("Validation service is closed");
+        }
         final ValidationResult validationResult = new ValidationResult();
 
         if (isEmptyFileAllowed && isFileEmpty(file)) {
@@ -113,19 +128,14 @@ public class ValidationService {
         }
     }
 
-    private static Schema getJsonSchema(final InputStream schemaFile) {
-        if (schemaFile == null) {
-            return null;
-        }
-        try {
-            // Preserve Draft 4 as the default and support explicit file/URL references.
-            // NetworkNT resolves bundled meta-schemas and classpath references locally.
-            final SchemaRegistry registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4,
-                    builder -> builder.schemaLoader(SchemaLoader.getRemoteFetcher()));
-            final JsonNode schemaObject = new ObjectMapper().readTree(schemaFile);
-            return registry.getSchema(schemaObject);
-        } catch (IOException | SchemaException e) {
-            throw new RuntimeException(e);
+    /** Releases this service's resolver, if owned. Safe to call more than once. */
+    @Override
+    public void close() {
+        if (!closed) {
+            closed = true;
+            if (ownedResolver != null) {
+                ownedResolver.close();
+            }
         }
     }
 

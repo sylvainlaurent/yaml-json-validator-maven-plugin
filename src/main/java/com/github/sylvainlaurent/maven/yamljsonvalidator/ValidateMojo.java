@@ -107,29 +107,33 @@ public class ValidateMojo extends AbstractMojo {
         } catch (IllegalArgumentException e) {
             throw new MojoExecutionException("Invalid schema mappings: " + e.getMessage(), e);
         }
-        for (final ValidationSet set : validationSets) {
-            final ValidationService validationService;
-            try {
-                validationService = ValidationService.forSchema(resolver.load(set.getJsonSchema()),
-                        allowEmptyFiles, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
-            } catch (RuntimeException e) {
-                throw new MojoExecutionException("Could not load schema [" + set.getJsonSchema() + "]: " + e.getMessage(), e);
-            }
+        try {
+            for (final ValidationSet set : validationSets) {
+                final ValidationService validationService;
+                try {
+                    validationService = ValidationService.forSchema(resolver.load(set.getJsonSchema()),
+                            allowEmptyFiles, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+                } catch (RuntimeException e) {
+                    throw new MojoExecutionException("Could not load schema [" + set.getJsonSchema() + "]: " + e.getMessage(), e);
+                }
 
-            final File[] files = set.getFiles(basedir);
+                final File[] files = set.getFiles(basedir);
 
-            for (final File file : files) {
-                if (verbose) {
-                    getLog().info("Validating file " + file);
-                }
-                final ValidationResult result = validationService.validate(file);
-                if (result.hasError()) {
-                    encounteredError = true;
-                }
-                for (final String msg : result.getMessages()) {
-                    getLog().warn(msg);
+                for (final File file : files) {
+                    if (verbose) {
+                        getLog().info("Validating file " + file);
+                    }
+                    final ValidationResult result = validationService.validate(file);
+                    if (result.hasError()) {
+                        encounteredError = true;
+                    }
+                    for (final String msg : result.getMessages()) {
+                        getLog().warn(msg);
+                    }
                 }
             }
+        } finally {
+            resolver.close();
         }
 
         if (encounteredError) {
