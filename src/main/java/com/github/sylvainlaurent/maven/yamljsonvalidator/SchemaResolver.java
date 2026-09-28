@@ -2,14 +2,12 @@ package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.AbsoluteIri;
-import com.networknt.schema.Error;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SchemaRegistryConfig;
 import com.networknt.schema.SpecificationVersion;
-import com.networknt.schema.regex.GraalJSRegularExpressionFactory;
 import com.networknt.schema.resource.InputStreamSource;
 import com.networknt.schema.resource.IriResourceLoader;
 import com.networknt.schema.resource.SchemaLoader;
@@ -20,10 +18,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Set;
-import org.graalvm.polyglot.Context;
+import java.util.function.Supplier;
 
 /** Shares schema mappings, retrieval policy and the schema cache across validation sets. */
 final class SchemaResolver implements AutoCloseable {
@@ -31,15 +26,17 @@ final class SchemaResolver implements AutoCloseable {
     private final boolean allowRemoteSchemas;
     private final boolean offline;
     private final SchemaLoader loader;
-    private final Set<Schema> checkedSchemas = Collections.newSetFromMap(new IdentityHashMap<Schema, Boolean>());
     private SchemaRegistry registry;
-    private Context context;
+    private final Supplier<RegexRuntime> runtimeFactory;
+    private RegexRuntime runtime;
     private boolean closed;
 
-    SchemaResolver(File basedir, SchemaMapping[] mappings, boolean allowRemoteSchemas, boolean offline) {
+    SchemaResolver(File basedir, SchemaMapping[] mappings, boolean allowRemoteSchemas, boolean offline,
+                   Supplier<RegexRuntime> runtimeFactory) {
         this.basedir = basedir;
         this.allowRemoteSchemas = allowRemoteSchemas;
         this.offline = offline;
+        this.runtimeFactory = runtimeFactory;
         SchemaCatalog catalog = new SchemaCatalog(basedir, mappings);
         loader = new ExactClasspathSchemaLoader(Collections.singletonList(catalog),
                 Collections.singletonList(this::getResource));
@@ -67,43 +64,39 @@ final class SchemaResolver implements AutoCloseable {
             }
         }
         // Keep the original identifier as the base for relative references; map only at retrieval time.
-        return prepare(registry().getSchema(SchemaLocation.of(location)), location);
+        return registry().getSchema(SchemaLocation.of(location));
     }
 
-    Schema loadStream(InputStream schema) throws IOException {
+    Schema loadStream(InputStream schema, URI documentUri) throws IOException {
         ensureOpen();
         if (schema == null) {
             return null;
         }
-        return prepare(registry().getSchema(new ObjectMapper().readTree(schema)),
-                "input stream");
-    }
-
-    private Schema prepare(Schema schema, String location) {
-        if (!checkedSchemas.contains(schema)) {
-            String dialect = schema.getSchemaContext().getDialect().getId();
-            Schema metaSchema = registry().getSchema(SchemaLocation.of(dialect));
-            List<Error> errors = metaSchema.validate(schema.getSchemaNode(), execution ->
-                    execution.executionConfig(config -> config.formatAssertionsEnabled(true)));
-            if (!errors.isEmpty()) {
-                throw new SchemaException("Invalid schema [" + location + "]: " + errors);
-            }
-            checkedSchemas.add(schema);
+        if (documentUri == null || !documentUri.isAbsolute() || documentUri.isOpaque()
+                || documentUri.getFragment() != null) {
+            throw new IllegalArgumentException("Streamed schemas require an absolute hierarchical document URI without a fragment");
         }
-        return schema;
+        return registry().getSchema(SchemaLocation.of(documentUri.toASCIIString()),
+                new ObjectMapper().readTree(schema));
     }
 
     private SchemaRegistry registry() {
         if (registry == null) {
-            Context created = Context.newBuilder("js").option("engine.WarnInterpreterOnly", "false").build();
+            RegexRuntime created = runtimeFactory.get();
             try {
                 SchemaRegistryConfig config = SchemaRegistryConfig.builder()
-                        .regularExpressionFactory(new GraalJSRegularExpressionFactory(created)).build();
+                        .regularExpressionFactory(created).build();
                 registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_4,
                         builder -> builder.schemaLoader(loader).schemaRegistryConfig(config));
-                context = created;
-            } catch (RuntimeException | java.lang.Error e) {
-                created.close();
+                runtime = created;
+            } catch (Throwable e) {
+                try {
+                    created.close();
+                } catch (Throwable closeFailure) {
+                    if (closeFailure != e) {
+                        e.addSuppressed(closeFailure);
+                    }
+                }
                 throw e;
             }
         }
@@ -120,11 +113,10 @@ final class SchemaResolver implements AutoCloseable {
     public void close() {
         if (!closed) {
             closed = true;
-            checkedSchemas.clear();
             registry = null;
-            if (context != null) {
-                context.close();
-                context = null;
+            if (runtime != null) {
+                runtime.close();
+                runtime = null;
             }
         }
     }

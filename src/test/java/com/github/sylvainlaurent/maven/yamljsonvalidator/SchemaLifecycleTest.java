@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.Schema;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.lang.reflect.Field;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
@@ -17,57 +17,47 @@ class SchemaLifecycleTest {
     @Test
     void resolver_closure_releases_its_context_without_affecting_another_resolver() throws Exception {
         try (SchemaResolver first = resolver(); SchemaResolver second = resolver()) {
-            Schema a = first.loadStream(stream(PATTERN));
-            Schema b = second.loadStream(stream(PATTERN));
+            Schema a = load(first, PATTERN);
+            Schema b = load(second, PATTERN);
             assertMatches(a);
             assertMatches(b);
             first.close();
             first.close();
             assertThrows(IllegalStateException.class, () -> a.validate(mapper.readTree("\"x\"")));
-            assertThrows(IllegalStateException.class, () -> first.loadStream(stream(PATTERN)));
+            assertThrows(IllegalStateException.class, () -> load(first, PATTERN));
             assertMatches(b);
         }
     }
 
     @Test
-    void borrowed_service_does_not_close_the_resolvers_context() throws Exception {
+    void services_share_the_resolvers_schema_without_owning_its_context() throws Exception {
         try (SchemaResolver resolver = resolver()) {
-            Schema schema = resolver.loadStream(stream(PATTERN));
-            ValidationService borrowed = ValidationService.forSchema(schema, false, true, false, false);
-            borrowed.close();
-            borrowed.close();
-            assertMatches(schema);
-        }
-    }
-
-    @Test
-    void stream_service_releases_its_context_after_validation_errors() throws Exception {
-        try (ValidationService service = new ValidationService(stream(PATTERN))) {
-            // Keep the compiled schema to check the actual Graal context, not just the service's closed flag.
-            Field field = ValidationService.class.getDeclaredField("schema");
-            field.setAccessible(true);
-            Schema schema = (Schema) field.get(service);
-            assertMatches(schema);
+            Schema schema = load(resolver, PATTERN);
+            ValidationService service = new ValidationService(schema, false, true, false, false);
             assertTrue(service.validate(new File("missing-input-file.json")).hasError());
-            service.close();
-            service.close();
-            assertThrows(IllegalStateException.class, () -> schema.validate(mapper.readTree("\"x\"")));
+            assertMatches(schema);
         }
     }
 
     @Test
-    void resolver_is_closed_when_schema_preparation_fails() throws Exception {
+    void resolver_is_closed_when_schema_parsing_fails() throws Exception {
         Schema retained;
         try (SchemaResolver resolver = resolver()) {
-            retained = resolver.loadStream(stream(PATTERN));
-            assertThrows(RuntimeException.class,
-                    () -> resolver.loadStream(stream("{\"required\":\"name\"}")));
+            retained = load(resolver, PATTERN);
+            assertThrows(IOException.class, () -> load(resolver, "{"));
         }
         assertThrows(IllegalStateException.class, () -> retained.validate(mapper.readTree("\"x\"")));
-        // A failed public constructor must also leave other services usable.
-        assertThrows(RuntimeException.class, () -> new ValidationService(stream("{\"required\":\"name\"}")));
-        try (ValidationService service = new ValidationService(stream(PATTERN))) {
-            assertNotNull(service);
+        try (SchemaResolver other = resolver()) {
+            assertMatches(load(other, PATTERN));
+        }
+    }
+
+    @Test
+    void absent_schema_does_not_resolve_or_initialize_graal() {
+        try (SchemaResolver resolver = new SchemaResolver(new File("."), null, false, true,
+                () -> { throw new AssertionError("Unexpected runtime resolution"); })) {
+            assertNull(resolver.load(null));
+            assertNull(resolver.load(""));
         }
     }
 
@@ -76,10 +66,10 @@ class SchemaLifecycleTest {
     }
 
     private SchemaResolver resolver() {
-        return new SchemaResolver(new File("."), null, false, true);
+        return new SchemaResolver(new File("."), null, false, true, TestRuntime::create);
     }
 
-    private ByteArrayInputStream stream(String schema) {
-        return new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
+    private Schema load(SchemaResolver resolver, String json) throws Exception {
+        return resolver.loadStream(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)), TestRuntime.DOCUMENT);
     }
 }

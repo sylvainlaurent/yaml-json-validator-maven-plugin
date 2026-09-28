@@ -5,8 +5,13 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.File;
+import java.util.List;
+import javax.inject.Inject;
 
 /**
  * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
@@ -14,6 +19,18 @@ import java.io.File;
  */
 @Mojo(name = "validate", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public class ValidateMojo extends AbstractMojo {
+
+    @Inject
+    private RepositorySystem repositorySystem;
+
+    @Inject
+    private RegexRuntimeLoader runtimeLoader;
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true, required = true)
+    private RepositorySystemSession repositorySession;
+
+    @Parameter(defaultValue = "${project.remotePluginRepositories}", readonly = true, required = true)
+    private List<RemoteRepository> pluginRepositories;
 
     @Parameter(defaultValue = "${project.basedir}", required = true, readonly = true)
     private File basedir;
@@ -103,7 +120,9 @@ public class ValidateMojo extends AbstractMojo {
 
         final SchemaResolver resolver;
         try {
-            resolver = new SchemaResolver(basedir, schemaMappings, allowRemoteSchemas, offline);
+            resolver = new SchemaResolver(basedir, schemaMappings, allowRemoteSchemas, offline,
+                    () -> runtimeLoader.create(new RegexRuntimeResolver(
+                            repositorySystem, repositorySession, pluginRepositories).resolve()));
         } catch (IllegalArgumentException e) {
             throw new MojoExecutionException("Invalid schema mappings: " + e.getMessage(), e);
         }
@@ -111,7 +130,7 @@ public class ValidateMojo extends AbstractMojo {
             for (final ValidationSet set : validationSets) {
                 final ValidationService validationService;
                 try {
-                    validationService = ValidationService.forSchema(resolver.load(set.getJsonSchema()),
+                    validationService = new ValidationService(resolver.load(set.getJsonSchema()),
                             allowEmptyFiles, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
                 } catch (RuntimeException e) {
                     throw new MojoExecutionException("Could not load schema [" + set.getJsonSchema() + "]: " + e.getMessage(), e);

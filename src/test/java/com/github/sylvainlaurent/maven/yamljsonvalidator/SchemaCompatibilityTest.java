@@ -1,5 +1,6 @@
 package com.github.sylvainlaurent.maven.yamljsonvalidator;
 
+import com.networknt.schema.Schema;
 import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -18,30 +19,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class SchemaCompatibilityTest {
     @TempDir
     Path directory;
-    private final List<AutoCloseable> resources = new ArrayList<>();
+    private final List<SchemaResolver> resources = new ArrayList<>();
 
     @AfterEach
-    void closeResources() throws Exception {
-        for (AutoCloseable resource : resources) {
+    void closeResources() {
+        for (SchemaResolver resource : resources) {
             resource.close();
-        }
-    }
-
-    @Test
-    void rejects_malformed_required_in_both_loading_paths() {
-        for (boolean stream : new boolean[] {false, true}) {
-            RuntimeException error = assertThrows(RuntimeException.class,
-                    () -> service(stream, "{\"type\":\"object\",\"required\":\"name\"}"));
-            assertTrue(error.getMessage().contains("required"), error.toString());
-        }
-    }
-
-    @Test
-    void rejects_malformed_nested_constraints_in_both_loading_paths() {
-        for (boolean stream : new boolean[] {false, true}) {
-            RuntimeException error = assertThrows(RuntimeException.class,
-                    () -> service(stream, "{\"properties\":{\"child\":{\"required\":\"name\"}}}"));
-            assertTrue(error.getMessage().contains("required"), error.toString());
         }
     }
 
@@ -57,8 +40,9 @@ class SchemaCompatibilityTest {
                     "http://json-schema.org/draft-07/schema#", "https://json-schema.org/draft/2019-09/schema",
                     "https://json-schema.org/draft/2020-12/schema"}) {
                 String prefix = "{\"$schema\":\"" + dialect + "\",";
-                assertValidation(service(stream, prefix + "\"exclusiveMinimum\":1}"), "1.5", true);
-                assertThrows(RuntimeException.class, () -> service(stream, prefix + "\"exclusiveMinimum\":true}"));
+                ValidationService exclusiveMinimum = service(stream, prefix + "\"exclusiveMinimum\":1}");
+                assertValidation(exclusiveMinimum, "1.5", true);
+                assertValidation(exclusiveMinimum, "1", false);
             }
         }
     }
@@ -168,22 +152,22 @@ class SchemaCompatibilityTest {
     }
 
     private SchemaResolver resolver(SchemaMapping[] mappings) {
-        SchemaResolver resolver = new SchemaResolver(directory.resolve("project").toFile(), mappings, false, true);
+        SchemaResolver resolver = new SchemaResolver(directory.resolve("project").toFile(), mappings, false, true, TestRuntime::create);
         resources.add(resolver);
         return resolver;
     }
 
     private ValidationService service(boolean stream, String schema) throws Exception {
-        ValidationService service;
+        Schema loadedSchema;
         if (stream) {
-            service = new ValidationService(new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)));
+            loadedSchema = resolver(null).loadStream(
+                    new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)), TestRuntime.DOCUMENT);
         } else {
             Path root = Files.createTempFile(directory, "schema-", ".json");
             Files.write(root, schema.getBytes(StandardCharsets.UTF_8));
-            service = ValidationService.forSchema(resolver(null).load(root.toString()), false, true, false, false);
+            loadedSchema = resolver(null).load(root.toString());
         }
-        resources.add(service);
-        return service;
+        return new ValidationService(loadedSchema, false, true, false, false);
     }
 
     private ValidationResult validate(ValidationService service, String json) throws Exception {

@@ -85,7 +85,7 @@ public class RemoteSchemaTest {
         Path input = directory.resolve("input.json");
         Files.write(input, "2".getBytes(StandardCharsets.UTF_8));
         for (boolean offline : new boolean[] {false, true}) {
-            ValidationService service = ValidationService.forSchema(
+            ValidationService service = new ValidationService(
                     resolver(null, offline, offline).load(root.toString()), false, true, false, false);
             ValidationResult result = service.validate(input.toFile());
             assertTrue(result.hasError());
@@ -136,7 +136,7 @@ public class RemoteSchemaTest {
     }
 
     private SchemaResolver resolver(SchemaMapping[] mappings, boolean remote, boolean offline) {
-        SchemaResolver resolver = new SchemaResolver(directory.toFile(), mappings, remote, offline);
+        SchemaResolver resolver = new SchemaResolver(directory.toFile(), mappings, remote, offline, TestRuntime::create);
         resolvers.add(resolver);
         return resolver;
     }

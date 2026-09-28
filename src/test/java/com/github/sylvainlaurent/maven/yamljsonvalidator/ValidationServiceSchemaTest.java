@@ -16,11 +16,11 @@ import java.util.List;
 import org.junit.jupiter.api.io.TempDir;
 
 public class ValidationServiceSchemaTest {
-    private final List<ValidationService> services = new ArrayList<>();
+    private final List<SchemaResolver> resolvers = new ArrayList<>();
 
     @AfterEach
     void closeServices() {
-        services.forEach(ValidationService::close);
+        resolvers.forEach(SchemaResolver::close);
     }
 
     @TempDir
@@ -96,10 +96,11 @@ public class ValidationServiceSchemaTest {
         assertInvalid(service, "{}");
     }
 
-    private ValidationService service(String schema) {
-        ValidationService service = new ValidationService(new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)));
-        services.add(service);
-        return service;
+    private ValidationService service(String schema) throws IOException {
+        SchemaResolver resolver = new SchemaResolver(directory.toFile(), null, true, false, TestRuntime::create);
+        resolvers.add(resolver);
+        return new ValidationService(resolver.loadStream(new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8)),
+                directory.resolve("schema.json").toUri()), false, true, false, false);
     }
 
     private ValidationResult validate(ValidationService service, String json) throws IOException {

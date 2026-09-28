@@ -8,16 +8,44 @@ Both JSON and YAML files can be validated against a JSON schema. The library [Ne
 
 Supported schema drafts are Draft 4, Draft 6, Draft 7, 2019-09, and 2020-12.
 Schemas without a `$schema` declaration use Draft 4. Draft 3 is no longer supported.
-Before validating input files, each configured root schema is checked against its
-dialect's meta-schema, including constraints in nested schema keywords. Invalid
-schemas fail the build even if no input files match. The standard meta-schemas are
-bundled with the validator and work offline. This check does not recursively
-validate the syntax of separate documents reached through `$ref`.
+Schema loading and input validation follow NetworkNT's behavior. The plugin does
+not perform a separate check of schema documents against their meta-schemas.
 
 Regular expressions use NetworkNT's GraalJS adapter for ECMA-262 semantics in
-`pattern`, `patternProperties`, and regex format checks. GraalJS is pinned to
-21.3.10 to retain Java 8 support; it runs on an ordinary JDK and does not require a
-GraalVM installation.
+`pattern`, `patternProperties`, and regex format checks. The plugin selects a
+pinned runtime for the JVM running Maven (independently of compiler toolchains):
+
+| Java version | GraalJS runtime |
+| --- | --- |
+| 8–16 | `org.graalvm.js:js:21.3.19` |
+| 17+ | `org.graalvm.polyglot:js-community:pom:25.0.4`, without `truffle-runtime` |
+
+Maven resolves the selected runtime and its dependencies through the active
+repository session and plugin repositories, honoring settings, mirrors, proxies,
+and the local repository. The JARs are loaded in isolation and are not bundled
+with this plugin. An ordinary JDK is sufficient; no GraalVM installation is needed.
+The interpreter runtime may still require Graal's native-resource cache to be writable.
+
+Offline schema validation requires the selected runtime to be cached by an earlier
+online run. `allowRemoteSchemas` controls schema retrieval, independently of Maven
+artifact resolution. Validation without a schema does not resolve or start GraalJS.
+The Maven goal shares one context across its validation sets and closes it on
+success or failure.
+The plugin's container owns the isolated classloader and releases it at shutdown;
+separate executions have independent contexts while sharing runtime classes.
+
+On Java 25/26, this runtime still produces JVM warnings about internal API access.
+The following optional JVM startup flags were tested with those JVMs; users can
+set them through `MAVEN_OPTS` or `.mvn/jvm.config`:
+
+```text
+--enable-native-access=ALL-UNNAMED
+--sun-misc-unsafe-memory-access=allow
+```
+
+These flags permit the underlying operations; they do not remove Graal's internal
+API usage. The plugin does not add them or suppress process output. It disables
+Graal's interpreter-performance notice because interpreter execution is intentional.
 
 References can use `classpath:` to load schemas from the plugin's classpath, including
 dependencies declared on the plugin, as well as explicit file or HTTP(S) URLs.
@@ -141,20 +169,3 @@ When an unmapped reference requires disabled network access, validation fails wi
 an explanation.
 
 Requires Java 8.
-
-## Using ValidationService directly
-
-`ValidationService` implements `AutoCloseable`. Use try-with-resources when calling
-its public constructors so the GraalJS context is released after all files have
-been validated:
-
-```java
-try (InputStream schema = Files.newInputStream(schemaPath);
-     ValidationService service = new ValidationService(schema)) {
-    ValidationResult result = service.validate(inputFile);
-}
-```
-
-The Maven goal handles this lifecycle automatically, sharing one resolver across
-its validation sets and closing it on success or failure. Validation without a
-schema does not create a GraalJS context.

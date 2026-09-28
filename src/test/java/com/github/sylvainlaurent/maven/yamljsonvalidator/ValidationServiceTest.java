@@ -9,15 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 
 public class ValidationServiceTest {
-    private ValidationService service = new ValidationService(null);
+    private final SchemaResolver resolver = new SchemaResolver(new File("."), null, true, false, TestRuntime::create);
+    private ValidationService service = new ValidationService(null, false, true, false, false);
 
     @AfterEach
     void closeService() {
-        service.close();
+        resolver.close();
     }
 
     @Test
@@ -49,40 +48,40 @@ public class ValidationServiceTest {
     }
 
     @Test
-    public void test_invalid_yml() throws FileNotFoundException {
-        service = new ValidationService(new FileInputStream("src/test/resources/swagger-schema.json"));
+    public void test_invalid_yml() {
+        service = new ValidationService(resolver.load("src/test/resources/swagger-schema.json"), false, true, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/not-valid.yml"));
         assertTrue(result.hasError());
         assertTrue(result.getMessages().size() >= 1);
     }
 
     @Test
-    public void test_not_valid_swagger_json() throws FileNotFoundException {
-        service = new ValidationService(new FileInputStream("src/test/resources/swagger-schema.json"));
+    public void test_not_valid_swagger_json() {
+        service = new ValidationService(resolver.load("src/test/resources/swagger-schema.json"), false, true, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/not-valid.json"));
         assertTrue(result.hasError());
         assertTrue(result.getMessages().size() >= 1);
     }
 
     @Test
-    public void test_valid_yml() throws FileNotFoundException {
-        service = new ValidationService(new FileInputStream("src/test/resources/swagger-schema.json"));
+    public void test_valid_yml() {
+        service = new ValidationService(resolver.load("src/test/resources/swagger-schema.json"), false, true, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/swagger-editor-example.yml"));
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
     }
 
     @Test
-    public void test_valid_json() throws FileNotFoundException {
-        service = new ValidationService(new FileInputStream("src/test/resources/swagger-schema.json"));
+    public void test_valid_json() {
+        service = new ValidationService(resolver.load("src/test/resources/swagger-schema.json"), false, true, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/swagger-editor-example.json"));
         assertFalse(result.hasError());
         assertTrue(result.getMessages().isEmpty());
     }
 
     @Test
-    public void test_schema_with_reference_to_unreachable_host() throws FileNotFoundException {
-        service = new ValidationService(new FileInputStream("src/test/resources/schema-with-ref.json"));
+    public void test_schema_with_reference_to_unreachable_host() {
+        service = new ValidationService(resolver.load("src/test/resources/schema-with-ref.json"), false, true, false, false);
         final ValidationResult result = service.validate(new File("src/test/resources/swagger-editor-example.json"));
         assertFalse(result.hasError());
     }

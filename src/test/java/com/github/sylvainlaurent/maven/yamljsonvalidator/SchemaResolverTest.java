@@ -119,7 +119,7 @@ public class SchemaResolverTest {
     }
 
     private SchemaResolver resolver(File basedir, SchemaMapping[] mappings, boolean remote, boolean offline) {
-        SchemaResolver resolver = new SchemaResolver(basedir, mappings, remote, offline);
+        SchemaResolver resolver = new SchemaResolver(basedir, mappings, remote, offline, TestRuntime::create);
         resolvers.add(resolver);
         return resolver;
     }
