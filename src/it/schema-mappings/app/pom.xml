@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.github.sylvainlaurent.maven.it</groupId>
+    <artifactId>schema-mappings-parent</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>schema-mappings</artifactId>
+  <packaging>pom</packaging>
+  <properties>
+    <schema.location>https://example.invalid/schemas/root.json</schema.location>
+    <allow.remote.schemas>true</allow.remote.schemas>
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>@project.groupId@</groupId>
+        <artifactId>@project.artifactId@</artifactId>
+        <version>@project.version@</version>
+        <executions>
+          <execution><goals><goal>validate</goal></goals></execution>
+        </executions>
+        <configuration>
+          <allowRemoteSchemas>${allow.remote.schemas}</allowRemoteSchemas>
+          <schemaMappings>
+            <schemaMapping>
+              <from>https://example.invalid/schemas/*</from>
+              <to>schemas/</to>
+            </schemaMapping>
+            <schemaMapping>
+              <from>https://example.invalid/schemas/root.json</from>
+              <to>schemas/root override.json</to>
+            </schemaMapping>
+          </schemaMappings>
+          <validationSets>
+            <validationSet>
+              <jsonSchema>${schema.location}</jsonSchema>
+              <includes><include>first.json</include></includes>
+            </validationSet>
+            <validationSet>
+              <jsonSchema>schemas/second.json</jsonSchema>
+              <includes><include>second.json</include></includes>
+            </validationSet>
+          </validationSets>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

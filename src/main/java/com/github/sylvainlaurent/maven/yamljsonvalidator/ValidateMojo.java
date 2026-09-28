@@ -5,11 +5,13 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.util.List;
+import javax.inject.Inject;
 
 /**
  * This mojo validates YAML and JSON files for well-formedness. If JSON schema is provided, it also
@@ -17,6 +19,18 @@ import java.io.InputStream;
  */
 @Mojo(name = "validate", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public class ValidateMojo extends AbstractMojo {
+
+    @Inject
+    private RepositorySystem repositorySystem;
+
+    @Inject
+    private RegexRuntimeLoader runtimeLoader;
+
+    @Parameter(defaultValue = "${repositorySystemSession}", readonly = true, required = true)
+    private RepositorySystemSession repositorySession;
+
+    @Parameter(defaultValue = "${project.remotePluginRepositories}", readonly = true, required = true)
+    private List<RemoteRepository> pluginRepositories;
 
     @Parameter(defaultValue = "${project.basedir}", required = true, readonly = true)
     private File basedir;
@@ -31,10 +45,35 @@ public class ValidateMojo extends AbstractMojo {
      * <code>${project.basedir}</code> and their syntax is that of
      * <code>org.codehaus.plexus.util.DirectoryScanner</code>.</p>
      *
-     * <p>JSON schema can be specified with <code>&lt;jsonSchema&gt;</code> element.</p>
+     * <p>JSON schema can be specified with <code>&lt;jsonSchema&gt;</code>: a file path,
+     * classpath resource, file URI, HTTP(S) URL or mapped schema identifier. Relative file
+     * paths use the project base directory; plain names fall back to the classpath.</p>
      */
     @Parameter
     private ValidationSet[] validationSets;
+
+    /**
+     * <p>Schema mappings shared by every validation set. Each <code>schemaMapping</code>
+     * contains <code>from</code> (an absolute schema identifier) and <code>to</code>
+     * (a file path, file URI, classpath resource or HTTP(S) URL).</p>
+     * <p>A single trailing <code>*</code> in <code>from</code> matches a prefix;
+     * its remaining suffix is appended to <code>to</code>, which has no wildcard.
+     * Exact matches win, otherwise the longest prefix wins. Mappings do not chain.
+     * Relative file destinations are resolved against the project base directory.</p>
+     */
+    @Parameter
+    private SchemaMapping[] schemaMappings;
+
+    /**
+     * Allow HTTP(S) schema retrieval after applying mappings, for both root schemas and
+     * references. Maven offline mode always disables network retrieval. Local files,
+     * classpath resources and bundled meta-schemas remain available.
+     */
+    @Parameter(defaultValue = "true")
+    private boolean allowRemoteSchemas = true;
+
+    @Parameter(defaultValue = "${settings.offline}", readonly = true)
+    private boolean offline;
 
     /**
      * Set to <code>false</code> to disable printing of files being validated.
@@ -79,58 +118,46 @@ public class ValidateMojo extends AbstractMojo {
             return;
         }
 
-        for (final ValidationSet set : validationSets) {
-            InputStream inputStream = openJsonSchema(set.getJsonSchema());
-            final ValidationService validationService = new ValidationService(
-                    inputStream,
-                    allowEmptyFiles,
-                    detectDuplicateKeys,
-                    allowJsonComments,
-                    allowTrailingComma);
-
-            final File[] files = set.getFiles(basedir);
-
-            for (final File file : files) {
-                if (verbose) {
-                    getLog().info("Validating file " + file);
+        final SchemaResolver resolver;
+        try {
+            resolver = new SchemaResolver(basedir, schemaMappings, allowRemoteSchemas, offline,
+                    () -> runtimeLoader.create(new RegexRuntimeResolver(
+                            repositorySystem, repositorySession, pluginRepositories).resolve()));
+        } catch (IllegalArgumentException e) {
+            throw new MojoExecutionException("Invalid schema mappings: " + e.getMessage(), e);
+        }
+        try {
+            for (final ValidationSet set : validationSets) {
+                final ValidationService validationService;
+                try {
+                    validationService = new ValidationService(resolver.load(set.getJsonSchema()),
+                            allowEmptyFiles, detectDuplicateKeys, allowJsonComments, allowTrailingComma);
+                } catch (RuntimeException e) {
+                    throw new MojoExecutionException("Could not load schema [" + set.getJsonSchema() + "]: " + e.getMessage(), e);
                 }
-                final ValidationResult result = validationService.validate(file);
-                if (result.hasError()) {
-                    encounteredError = true;
-                }
-                for (final String msg : result.getMessages()) {
-                    getLog().warn(msg);
+
+                final File[] files = set.getFiles(basedir);
+
+                for (final File file : files) {
+                    if (verbose) {
+                        getLog().info("Validating file " + file);
+                    }
+                    final ValidationResult result = validationService.validate(file);
+                    if (result.hasError()) {
+                        encounteredError = true;
+                    }
+                    for (final String msg : result.getMessages()) {
+                        getLog().warn(msg);
+                    }
                 }
             }
+        } finally {
+            resolver.close();
         }
 
         if (encounteredError) {
             throw new MojoExecutionException("Some files are not valid, see previous logs");
         }
-    }
-
-    InputStream openJsonSchema(String jsonSchemaFile) throws MojoExecutionException {
-        if (jsonSchemaFile != null && jsonSchemaFile.length() > 0) {
-            File file = new File(jsonSchemaFile);
-            if (file.isFile()) {
-                try {
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    throw new MojoExecutionException("Could not load schema file ["+ jsonSchemaFile + "]", e);
-                }
-            } else {
-                try {
-                    InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(jsonSchemaFile);
-                    if (inputStream != null) {
-                        return inputStream;
-                    }
-                    throw new MojoExecutionException("Could not load schema neither from filesystem nor classpath ["+ jsonSchemaFile + "]");
-                } catch (Exception e){
-                    throw new MojoExecutionException("Could not load schema file from classpath ["+ jsonSchemaFile + "]", e);
-                }
-            }
-        }
-        return null;
     }
 
 }

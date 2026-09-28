@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "required": [
+    "any",
+    "whitespace",
+    "repeated",
+    "keys"
+  ],
+  "properties": {
+    "any": {
+      "type": "string",
+      "pattern": "^[^]+$"
+    },
+    "whitespace": {
+      "type": "string",
+      "pattern": "^\\s+$"
+    },
+    "repeated": {
+      "type": "string",
+      "pattern": "^(a)\\1$"
+    },
+    "keys": {
+      "type": "object",
+      "patternProperties": {
+        "^\\s+$": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
